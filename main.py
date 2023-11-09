@@ -135,12 +135,13 @@ class Window(Tk):
         if self.run_button["state"] == "disabled":
             self.run_button["state"] = "active"
 
-    def run(self):
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
-                              self.er,self.me,self.ee,self.ke,self.cm,
-                              self.nreactions,self.xdim,self.ydiml,
-                              self.dead,self.threshd)
-        self.KM.genKinematics()
+                        self.er,self.me,self.ee,self.ke,self.cm,
+                        self.nreactions,self.xdim,self.ydiml,
+                        self.dead,self.threshd)
+        
+    def run(self):
+        self.KM.determineDetected()
 
 class Kinematics():
     def __init__(self):
@@ -178,19 +179,31 @@ class Kinematics():
         #print(self.dead)
         self.threshd = threshd
         #print(self.threshd)
-        self.reactionArr = np.zeros((5,nreactions),dtype=float)
-        self.reactionArr[0] = np.ones(nreactions)*cm
-        self.reactionArr[1] = np.ones(nreactions)*self.labAngle(self.me,self.mr,cm)
-        self.reactionArr[3] = np.ones(nreactions)*self.labAngle2(self.mr,self.me,-np.pi+cm)
-        #print(self.reactionArr)
+        self.cm = cm
+        # print(self.cm)
+        self.nreactions = nreactions
+        # print(self.nreactions)
+        self.labA1 = self.labAngle(self.me,self.mr,cm)
+        self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
+        self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
+        self.labE2 = self.labEnergy(self.mr,self.me,self.labA2,-np.pi+cm)/self.mr
+        print(self.labA1,self.labE1,self.labA2,self.labE2)
 
-    def genKinematics(self) -> np.ndarray:
-        for i,cm in enumerate(self.reactionArr[0]):
-            # self.reactionArr[1][i] = self.labAngle(self.me,self.mr,cm)
-            self.reactionArr[2][i] = self.labEnergy(self.me,self.mr,self.reactionArr[1][i],cm)/self.me
-            # self.reactionArr[3][i] = self.labAngle2(self.mr,self.me,-np.pi+cm)
-            self.reactionArr[4][i] = self.labEnergy(self.mr,self.me,self.reactionArr[3][i],cm)/self.mr
-        print(self.reactionArr)
+    def determineDetected(self) -> np.ndarray:
+        beamlikeDetected = []
+        targetlikeDetected = []
+        for _ in range(self.nreactions):
+            vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
+            if (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA1)) >= self.threshd:
+                beamlikeDetected.append(1)
+            else:
+                beamlikeDetected.append(0)
+            if (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA2)) >= self.threshd:
+                targetlikeDetected.append(1)
+            else:
+                targetlikeDetected.append(0)
+
+        print(sum(targetlikeDetected))
 
     def labAngle(self,me,mr,cm):
         gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
