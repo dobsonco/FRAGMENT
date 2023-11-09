@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
 import numpy as np
 import matplotlib.pyplot as plt
 import threading as th
@@ -75,14 +76,14 @@ class Window(Tk):
         self.dim_frame = LabelFrame(self.frame, text = "Dimensions of Detector")
         self.dim_frame.grid(row=1,column=0,sticky="ew",padx=10,pady=5)
 
-        self.x_dim_label = Label(self.dim_frame, text = "Enter Xdim (cm)")
+        self.x_dim_label = Label(self.dim_frame, text = "Enter Length (cm)")
         self.x_dim_label.grid(row=0,column=0)
         self.x_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=100))
         self.x_dim_entry.grid(row=1,column=0)
 
-        self.y_dim_label = Label(self.dim_frame, text = "Enter Ydim (cm)")
+        self.y_dim_label = Label(self.dim_frame, text = "Enter Radius (cm)")
         self.y_dim_label.grid(row=0,column=1)
-        self.y_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=36))
+        self.y_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=18))
         self.y_dim_entry.grid(row=1,column=1)
 
         self.deadzone_label = Label(self.dim_frame, text = "Enter Deadzone (cm)")
@@ -117,7 +118,7 @@ class Window(Tk):
 
     def read_input(self):
         self.xdim = int(self.x_dim_entry.get())
-        self.ydiml = int(self.y_dim_entry.get())
+        self.ydim = int(self.y_dim_entry.get())
         self.dead = int(self.deadzone_entry.get())
         self.threshd = int(self.threshold_entry.get()) + self.dead
         self.ke = int(self.beamke_entry.get())
@@ -132,15 +133,21 @@ class Window(Tk):
         self.cm = int(self.comangle_entry.get()) * (np.pi / 180)
         self.nreactions = int(self.nreaction_entry.get()) * 1000
 
+        if self.threshd >= self.ydim:
+            messagebox.showwarning(title="Value Error",message="Detection threshold greater than radius of detector")
+            self.run_button["state"] = "disabled"
+            return
+
         if self.run_button["state"] == "disabled":
             self.run_button["state"] = "active"
 
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
                         self.er,self.me,self.ee,self.ke,self.cm,
-                        self.nreactions,self.xdim,self.ydiml,
+                        self.nreactions,self.xdim,self.ydim,
                         self.dead,self.threshd)
         
     def run(self):
+        self.run_button["state"] = "disabled"
         self.KM.determineDetected()
 
 class Kinematics():
@@ -190,20 +197,28 @@ class Kinematics():
         print(self.labA1,self.labE1,self.labA2,self.labE2)
 
     def determineDetected(self) -> np.ndarray:
-        beamlikeDetected = []
-        targetlikeDetected = []
-        for _ in range(self.nreactions):
+        detection = np.zeros((3,self.nreactions))
+        for i in range(self.nreactions):
             vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
-            if (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA1)) >= self.threshd:
-                beamlikeDetected.append(1)
-            else:
-                beamlikeDetected.append(0)
-            if (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA2)) >= self.threshd:
-                targetlikeDetected.append(1)
-            else:
-                targetlikeDetected.append(0)
-
-        print(sum(targetlikeDetected))
+            detection[2][i] = vz
+            y1 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA1))
+            y2 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA2))
+            if y2 >= self.threshd:
+                detection[1][i] = 1.0
+            elif y1 >= self.threshd:
+                detection[0][i] = 1.0
+        self.detectedVert = detection[2][np.logical_or(detection[0]==1.0,detection[1]==1.0)]
+        
+        fig,ax = plt.subplots(nrows=1,ncols=1)
+        ax.set_xlabel("Vertex of Reaction")
+        ax.set_ylabel("Counts")
+        ax.set_title("Number of detections")
+        ax.set_facecolor('#ADD8E6')
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(color='white', linestyle='-')
+        plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        plt.show()
+        GUI.run_button["state"] = "active"
 
     def labAngle(self,me,mr,cm):
         gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
