@@ -134,7 +134,7 @@ class Window(Tk):
         self.nreactions = int(self.nreaction_entry.get()) * 1000
 
         if self.threshd >= self.ydim:
-            messagebox.showwarning(title="Value Error",message="Detection threshold greater than radius of detector")
+            self.errMessage("Value Error", "Detection threshold greater than radius of detector")
             self.run_button["state"] = "disabled"
             return
 
@@ -149,6 +149,9 @@ class Window(Tk):
     def run(self):
         self.run_button["state"] = "disabled"
         self.KM.determineDetected()
+
+    def errMessage(self,errtype: str,message: str):
+        messagebox.showwarning(title=errtype,message=message)
 
 class Kinematics():
     def __init__(self):
@@ -208,6 +211,10 @@ class Kinematics():
             elif y1 >= self.threshd:
                 detection[0][i] = 1.0
         self.detectedVert = detection[2][np.logical_or(detection[0]==1.0,detection[1]==1.0)]
+
+        if len(self.detectedVert <= 0):
+            GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
+            return
         
         fig,ax = plt.subplots(nrows=1,ncols=1)
         ax.set_xlabel("Vertex of Reaction")
