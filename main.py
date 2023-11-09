@@ -12,53 +12,14 @@ global sys_path
 sys_path = path[0]
 global resource_path
 resource_path = os.path.join(sys_path,"Resources")
-
-class Kinematics():
-    def __init__(self, ee, er, ep, et, nreactions=100):
-        self.Q = (ep + et) - (er + ee)
-
-        self.reactionArr = np.zeros((5,nreactions),dtype=float)
-
-        self.reactionArr[0] = np.random.uniform(0,1,nreactions)*np.pi
-
-    def genKinematics(self,mp,mt,me,mr,ep) -> np.ndarray:
-        for i,cm in enumerate(self.reactionArr[0]):
-            self.reactionArr[1][i] = self.labAngle(mp,mt,me,mr,ep,self.Q,cm)
-            self.reactionArr[2][i] = self.labEnergy(mp,mt,me,mr,ep,self.Q,self.reactionArr[1][i],cm)/me
-            self.reactionArr[3][i] = self.labAngle2(mp,mt,mr,me,ep,self.Q,-np.pi+cm)
-            self.reactionArr[4][i] = self.labEnergy(mp,mt,mr,me,ep,self.Q,self.reactionArr[3][i],cm)/mr
-        print(self.reactionArr)
-
-    def labAngle(self,mp,mt,me,mr,ep,Q,cm):
-        gam = np.sqrt(mp*me/mt/mr*ep/(ep+Q*(1+mp/mt)))
-        lab = np.arctan2(np.sin(cm),gam-np.cos(cm))
-        return lab
-
-    def labAngle2(self,mp,mt,me,mr,ep,Q,cm):
-        gam = np.sqrt(mp*me/mt/mr*ep/(ep+Q*(1+mp/mt)))
-        lab = np.arctan2(np.sin(cm),gam+np.cos(cm))
-        return lab
-
-    def labEnergy(self,mp,mt,me,mr,ep,Q,th,cm):
-        delta = np.sqrt(mp*me*ep*np.cos(th)**2 + (mr+me)*(mr*self.Q+(mr-mp)*ep))
-        if(np.isnan(delta)):
-            print("NaN encountered, Invalid Reaction")
-        fir = np.sqrt(mp*me*ep)*np.cos(th)
-        e1 = (fir + delta) / (mr+me)
-        e2 = (fir - delta) / (mr+me)
-        e1 = e1**2
-        e2 = e2**2
-        gam = np.sqrt(mp*me/mt/mr*ep/(ep+self.Q*(1+mp/mt)))
-        arg = np.sin(cm)/(gam-np.cos(cm))
-        der = 1/(1+arg**2)*(gam*np.cos(cm)-1)/(gam-np.cos(cm))**2
-        if (der < 0):
-            return e1
-        else:
-            return e2
+global amu
+amu = 931.5
 
 class Window(Tk):
     def __init__(self):
         super().__init__()
+
+        self.KM = Kinematics()
         
         self.protocol("WM_DELETE_WINDOW",self.on_x)
         self.title("AT-TPC Sim")
@@ -70,112 +31,193 @@ class Window(Tk):
 
         # Creating Reaction Input Frame
         self.reaction_frame = LabelFrame(self.frame, text = "Reaction Info")
-        self.reaction_frame.grid(row=0,column=0,padx=5,pady=5,sticky="ew")
+        self.reaction_frame.grid(row=0,column=0,sticky="ew",padx=10,pady=5)
 
         self.mbeam_label = Label(self.reaction_frame, text = "Mass of Beam (amu)")
-        self.mbeam_label.grid(row=0,column=0,padx=5,pady=5)
+        self.mbeam_label.grid(row=0,column=0)
         self.mbeam_entry = Entry(self.reaction_frame,textvariable=IntVar(value=12))
-        self.mbeam_entry.grid(row=1,column=0,padx=5,pady=5)
-        self.mbeam_val = IntVar()
+        self.mbeam_entry.grid(row=1,column=0)
 
         self.mtarget_label = Label(self.reaction_frame, text = "Mass of Target (amu)")
-        self.mtarget_label.grid(row=0,column=1,padx=5,pady=5)
+        self.mtarget_label.grid(row=0,column=1)
         self.mtarget_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
-        self.mtarget_entry.grid(row=1,column=1,padx=5,pady=5)
-        self.mtarget_val = IntVar()
+        self.mtarget_entry.grid(row=1,column=1)
 
         self.beamke_label = Label(self.reaction_frame,text="Beam KE (MeV)")
         self.beamke_label.grid(row=0,column=2)
         self.beamke_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1000))
-        self.beamke_entry.grid(row=1,column=2,padx=5,pady=5)
-        self.beamke_val = IntVar()
+        self.beamke_entry.grid(row=1,column=2)
 
         self.mbeamlike_label = Label(self.reaction_frame, text = "Mass of Beamlike (amu)")
-        self.mbeamlike_label.grid(row=0,column=3,padx=5,pady=5)
+        self.mbeamlike_label.grid(row=0,column=3)
         self.mbeamlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
-        self.mbeamlike_entry.grid(row=1,column=3,padx=5,pady=5)
-        self.mbeamlike_val = IntVar()
+        self.mbeamlike_entry.grid(row=1,column=3)
 
         self.mtargetlike_label = Label(self.reaction_frame, text = "Mass of Targetlike (amu)")
-        self.mtargetlike_label.grid(row=2,column=0,padx=5,pady=5)
+        self.mtargetlike_label.grid(row=2,column=0)
         self.mtargetlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=3))
-        self.mtargetlike_entry.grid(row=3,column=0,padx=5,pady=5)
-        self.mtargetlike_val = IntVar()
+        self.mtargetlike_entry.grid(row=3,column=0)
 
         self.comangle_label = Label(self.reaction_frame, text = "Enter CM Angle (deg)")
-        self.comangle_label.grid(row=2,column=1,padx=5,pady=5)
+        self.comangle_label.grid(row=2,column=1)
         self.comangle_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
-        self.comangle_entry.grid(row=3,column=1,padx=5,pady=5)
-        self.comangle_val = IntVar()
+        self.comangle_entry.grid(row=3,column=1)
+
+        self.nreaction_label = Label(self.reaction_frame, text = "# Reactions (thousands)")
+        self.nreaction_label.grid(row=2,column=2)
+        self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
+        self.nreaction_entry.grid(row=3,column=2)
+
+        for widget in self.reaction_frame.winfo_children():
+           widget.grid_configure(padx=5,pady=5)
 
         # Creating Dimension Input Frame
         self.dim_frame = LabelFrame(self.frame, text = "Dimensions of Detector")
-        self.dim_frame.grid(row=1,column=0,padx=5,pady=5,sticky="ew")
+        self.dim_frame.grid(row=1,column=0,sticky="ew",padx=10,pady=5)
 
         self.x_dim_label = Label(self.dim_frame, text = "Enter Xdim (cm)")
         self.x_dim_label.grid(row=0,column=0)
         self.x_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=100))
-        self.x_dim_entry.grid(row=1,column=0,padx=5,pady=5)
-        self.x_dim_val = IntVar()
+        self.x_dim_entry.grid(row=1,column=0)
 
         self.y_dim_label = Label(self.dim_frame, text = "Enter Ydim (cm)")
         self.y_dim_label.grid(row=0,column=1)
         self.y_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=36))
-        self.y_dim_entry.grid(row=1,column=1,padx=5,pady=5)
-        self.y_dim_val = IntVar()
+        self.y_dim_entry.grid(row=1,column=1)
 
         self.deadzone_label = Label(self.dim_frame, text = "Enter Deadzone (cm)")
         self.deadzone_label.grid(row=0,column=2)
         self.deadzone_entry = Entry(self.dim_frame,textvariable=IntVar(value=6))
-        self.deadzone_entry.grid(row=1,column=2,padx=5,pady=5)
-        self.deadzone_val = IntVar()
+        self.deadzone_entry.grid(row=1,column=2)
 
         self.threshold_label = Label(self.dim_frame, text="Threshold to Detect (cm)")
         self.threshold_label.grid(row=0,column=3)
         self.threshold_entry = Entry(self.dim_frame,textvariable=IntVar(value=3))
-        self.threshold_entry.grid(row=1,column=3,padx=5,pady=5)
-        self.threshold_val = IntVar()
+        self.threshold_entry.grid(row=1,column=3)
+
+        for widget in self.dim_frame.winfo_children():
+            widget.grid_configure(padx=5,pady=5)
 
         # Create Run Button Frame
         self.button_frame = LabelFrame(self.frame, text = "Reaction Info")
-        self.button_frame.grid(row=2,column=0,padx=5,pady=5,sticky="ew")
+        self.button_frame.grid(row=2,column=0,sticky="ew",padx=10,pady=5)
 
-        self.run_button = Button(self.button_frame,text="Read Inputs",command=self.read_input)
-        self.run_button.pack(padx=5,pady=5)
+        self.read_button = Button(self.button_frame,text="Read Inputs",command=self.read_input)
+        self.read_button.grid(row=0,column=0)
+
+        self.run_button = Button(self.button_frame,text="Run Sim",command=self.run)
+        self.run_button.grid(row=0,column=1)
+        self.run_button["state"] = "disabled"
+
+        for widget in self.button_frame.winfo_children():
+            widget.grid_configure(padx=5,pady=5)
 
     def on_x(self):
         self.destroy()
 
     def read_input(self):
-        self.x_dim_val = self.x_dim_entry.get()
-        print(self.x_dim_val)
+        self.xdim = int(self.x_dim_entry.get())
+        self.ydiml = int(self.y_dim_entry.get())
+        self.dead = int(self.deadzone_entry.get())
+        self.threshd = int(self.threshold_entry.get()) + self.dead
+        self.ke = int(self.beamke_entry.get())
+        self.mp = int(self.mbeam_entry.get())
+        self.ep = self.mp * amu + self.ke
+        self.mt = int(self.mtarget_entry.get())
+        self.et = self.mt * amu
+        self.me = int(self.mbeamlike_entry.get())
+        self.ee = self.me * amu
+        self.mr = int(self.mtargetlike_entry.get())
+        self.er = self.mr * amu
+        self.cm = int(self.comangle_entry.get()) * (np.pi / 180)
+        self.nreactions = int(self.nreaction_entry.get()) * 1000
 
-        self.y_dim_val = self.y_dim_entry.get()
-        print(self.y_dim_val)
+        if self.run_button["state"] == "disabled":
+            self.run_button["state"] = "active"
 
-        self.deadzone_val = self.deadzone_entry.get()
-        print(self.deadzone_val)
+    def run(self):
+        self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
+                              self.er,self.me,self.ee,self.ke,self.cm,
+                              self.nreactions,self.xdim,self.ydiml,
+                              self.dead,self.threshd)
+        self.KM.genKinematics()
 
-        self.threshold_val = self.threshold_entry.get()
-        print(self.threshold_val)
+class Kinematics():
+    def __init__(self):
+        pass
 
-        self.mbeam_val = self.mbeam_entry.get()
-        print(self.mbeam_val)
+    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd) -> None:
+        '''
+        Sets Variables for genKinematics
+        '''
+        self.Q = (ep + et) - (er + ee)
+        #print(self.Q)
+        self.mp = mp
+        #print(self.mp)
+        self.ep = ep
+        #print(self.ep)
+        self.mt = mt
+        #print(self.mt)
+        self.et = et
+        #print(self.et)
+        self.mr = mr
+        #print(self.mr)
+        self.er = er
+        #print(self.er)
+        self.me = me
+        #print(self.me)
+        self.ee = ee
+        #print(self.ee)
+        self.ke = ke
+        #print(self.ke)
+        self.xdim = xdim
+        #print(self.xdim)
+        self.ydim = ydim
+        #print(self.ydim)
+        self.dead = dead
+        #print(self.dead)
+        self.threshd = threshd
+        #print(self.threshd)
+        self.reactionArr = np.zeros((5,nreactions),dtype=float)
+        self.reactionArr[0] = np.ones(nreactions)*cm
+        self.reactionArr[1] = np.ones(nreactions)*self.labAngle(self.me,self.mr,cm)
+        self.reactionArr[3] = np.ones(nreactions)*self.labAngle2(self.mr,self.me,-np.pi+cm)
+        #print(self.reactionArr)
 
-        self.mtarget_val = self.mtarget_entry.get()
-        print(self.mtarget_val)
+    def genKinematics(self) -> np.ndarray:
+        for i,cm in enumerate(self.reactionArr[0]):
+            # self.reactionArr[1][i] = self.labAngle(self.me,self.mr,cm)
+            self.reactionArr[2][i] = self.labEnergy(self.me,self.mr,self.reactionArr[1][i],cm)/self.me
+            # self.reactionArr[3][i] = self.labAngle2(self.mr,self.me,-np.pi+cm)
+            self.reactionArr[4][i] = self.labEnergy(self.mr,self.me,self.reactionArr[3][i],cm)/self.mr
+        print(self.reactionArr)
 
-        self.beamke_val = self.beamke_entry.get()
-        print(self.beamke_val)
+    def labAngle(self,me,mr,cm):
+        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        lab = np.arctan2(np.sin(cm),gam-np.cos(cm))
+        return lab
 
-        self.mbeamlike_val = self.mbeamlike_entry.get()
-        print(self.mbeamlike_val)
+    def labAngle2(self,me,mr,cm):
+        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        lab = np.arctan2(np.sin(cm),gam+np.cos(cm))
+        return lab
 
-        self.mtargetlike_val = self.mtargetlike_entry.get()
-        print(self.mtargetlike_val)
-
-        self.comangle_val = self.comangle_entry.get()
-        print(self.comangle_val)
+    def labEnergy(self,me,mr,th,cm):
+        delta = np.sqrt(self.mp*me*self.ep*np.cos(th)**2 + (mr+me)*(mr*self.Q+(mr-self.mp)*self.ep))
+        if(np.isnan(delta)):
+            print("NaN encountered, Invalid Reaction")
+        fir = np.sqrt(self.mp*me*self.ep)*np.cos(th)
+        e1 = (fir + delta) / (mr+me)
+        e2 = (fir - delta) / (mr+me)
+        e1 = e1**2
+        e2 = e2**2
+        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        arg = np.sin(cm)/(gam-np.cos(cm))
+        der = 1/(1+arg**2)*(gam*np.cos(cm)-1)/(gam-np.cos(cm))**2
+        if (der < 0):
+            return e1
+        else:
+            return e2
 
 if __name__ == '__main__':
     GUI = Window()
