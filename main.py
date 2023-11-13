@@ -135,11 +135,11 @@ class Window(Tk):
 
         if self.threshd >= self.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
-            self.run_button["state"] = "disabled"
+            self.toggleRunButton("off")
             return
 
         if self.run_button["state"] == "disabled":
-            self.run_button["state"] = "active"
+            self.toggleRunButton("on")
 
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
                         self.er,self.me,self.ee,self.ke,self.cm,
@@ -147,11 +147,18 @@ class Window(Tk):
                         self.dead,self.threshd)
         
     def run(self):
-        self.run_button["state"] = "disabled"
+        self.toggleRunButton("off")
         self.KM.determineDetected()
 
     def errMessage(self,errtype: str,message: str):
         messagebox.showwarning(title=errtype,message=message)
+
+    def toggleRunButton(self,state):
+        if state == "off":
+            self.run_button["state"] = "disabled"
+        elif state == "on":
+            self.run_button["state"] = "active"
+        
 
 class Kinematics():
     def __init__(self):
@@ -212,7 +219,7 @@ class Kinematics():
                 detection[0][i] = 1.0
         self.detectedVert = detection[2][np.logical_or(detection[0]==1.0,detection[1]==1.0)]
 
-        if len(self.detectedVert <= 0):
+        if len(self.detectedVert) <= 0:
             GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
             return
         
@@ -225,7 +232,7 @@ class Kinematics():
         ax.yaxis.grid(color='white', linestyle='-')
         plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
         plt.show()
-        GUI.run_button["state"] = "active"
+        GUI.toggleRunButton("on")
 
     def labAngle(self,me,mr,cm):
         gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
