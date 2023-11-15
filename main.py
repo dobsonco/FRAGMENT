@@ -166,7 +166,8 @@ class Window(Tk):
         elif state == "on":
             self.run_button["state"] = "active"
         
-    
+    def createFigViewer():
+        pass
 
 class Kinematics():
     def __init__(self):
@@ -237,28 +238,25 @@ class Kinematics():
         p.start()
         
     def createFig(self):
-        fig,ax = plt.subplots(nrows=1,ncols=1)
-        ax.set_xlabel("Vertex of Reaction")
-        ax.set_ylabel("Counts")
-        ax.set_title("Number of detections")
-        ax.set_facecolor('#ADD8E6')
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color='white', linestyle='-')
-        plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
-        plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
-        plt.cla()
-        plt.clf()
-        plt.close('all')
+        fig,ax = plt.subplots(nrows=2,ncols=1)
+        ax[0].set_xlabel("Vertex of Reaction")
+        ax[0].set_ylabel("Counts")
+        ax[0].set_title("Number of detections")
+        ax[0].set_facecolor('#ADD8E6')
+        ax[0].set_axisbelow(True)
+        ax[0].yaxis.grid(color='white', linestyle='-')
+        ax[0].hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
 
-        fig,ax = plt.subplots(nrows=1,ncols=1)
-        ax.set_xlabel("CM Angle")
-        ax.set_ylabel("Counts")
-        ax.set_title("Number of detections")
-        ax.set_facecolor('#ADD8E6')
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color='white', linestyle='-')
-        plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
-        plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg")
+        ax[1].set_xlabel("CM Angle")
+        ax[1].set_ylabel("Counts")
+        ax[1].set_title("Number of detections")
+        ax[1].set_facecolor('#ADD8E6')
+        ax[1].set_axisbelow(True)
+        ax[1].yaxis.grid(color='white', linestyle='-')
+        ax[1].hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        plt.tight_layout()
+        plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
+        plt.show()
         plt.cla()
         plt.clf()
         plt.close('all')
