@@ -15,6 +15,8 @@ global resource_path
 resource_path = os.path.join(sys_path,"Resources")
 global amu
 amu = 931.5
+global temp_folder
+temp_folder = os.path.join(sys_path,"temp")
 
 class Window(Tk):
     def __init__(self):
@@ -148,17 +150,23 @@ class Window(Tk):
         
     def run(self):
         self.toggleRunButton("off")
-        self.KM.determineDetected()
+        t = th.Thread(self.KM.determineDetected())
+        t.start()
 
     def errMessage(self,errtype: str,message: str):
         messagebox.showwarning(title=errtype,message=message)
 
     def toggleRunButton(self,state):
+        """
+        options for state:
+        "on" or "off"
+        """
         if state == "off":
             self.run_button["state"] = "disabled"
         elif state == "on":
             self.run_button["state"] = "active"
         
+    
 
 class Kinematics():
     def __init__(self):
@@ -206,7 +214,7 @@ class Kinematics():
         self.labE2 = self.labEnergy(self.mr,self.me,self.labA2,-np.pi+cm)/self.mr
         print(self.labA1,self.labE1,self.labA2,self.labE2)
 
-    def determineDetected(self) -> np.ndarray:
+    def determineDetected(self):
         detection = np.zeros((3,self.nreactions))
         for i in range(self.nreactions):
             vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
@@ -223,6 +231,12 @@ class Kinematics():
             GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
             return
         
+        GUI.toggleRunButton(state="on")
+
+        p = mp.Process(target=self.createFig)
+        p.start()
+        
+    def createFig(self):
         fig,ax = plt.subplots(nrows=1,ncols=1)
         ax.set_xlabel("Vertex of Reaction")
         ax.set_ylabel("Counts")
@@ -231,8 +245,23 @@ class Kinematics():
         ax.set_axisbelow(True)
         ax.yaxis.grid(color='white', linestyle='-')
         plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
-        plt.show()
-        GUI.toggleRunButton("on")
+        plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
+        plt.cla()
+        plt.clf()
+        plt.close('all')
+
+        fig,ax = plt.subplots(nrows=1,ncols=1)
+        ax.set_xlabel("CM Angle")
+        ax.set_ylabel("Counts")
+        ax.set_title("Number of detections")
+        ax.set_facecolor('#ADD8E6')
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(color='white', linestyle='-')
+        plt.hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg")
+        plt.cla()
+        plt.clf()
+        plt.close('all')
 
     def labAngle(self,me,mr,cm):
         gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
