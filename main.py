@@ -71,6 +71,11 @@ class Window(Tk):
         self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
         self.nreaction_entry.grid(row=3,column=2)
 
+        self.vz_label = Label(self.reaction_frame, text = "Vertex of Reaction")
+        self.vz_label.grid(row=2,column=3)
+        self.vz_entry = Entry(self.reaction_frame,textvariable=IntVar(value=50))
+        self.vz_entry.grid(row=3,column=3)
+
         for widget in self.reaction_frame.winfo_children():
            widget.grid_configure(padx=5,pady=5)
 
@@ -102,7 +107,7 @@ class Window(Tk):
             widget.grid_configure(padx=5,pady=5)
 
         # Create Run Button Frame
-        self.button_frame = LabelFrame(self.frame, text = "Reaction Info")
+        self.button_frame = LabelFrame(self.frame, text = "Control Panel")
         self.button_frame.grid(row=2,column=0,sticky="ew",padx=10,pady=5)
 
         self.read_button = Button(self.button_frame,text="Read Inputs",command=self.read_input)
@@ -111,6 +116,9 @@ class Window(Tk):
         self.run_button = Button(self.button_frame,text="Run Sim",command=self.run)
         self.run_button.grid(row=0,column=1)
         self.run_button["state"] = "disabled"
+
+        self.info_button = Button(self.button_frame,text="Info",command=self.infoWin)
+        self.info_button.grid(row=0,column=2)
 
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
@@ -134,11 +142,15 @@ class Window(Tk):
         self.er = self.mr * amu
         self.cm = int(self.comangle_entry.get()) * (np.pi / 180)
         self.nreactions = int(self.nreaction_entry.get()) * 1000
+        self.vz = int(self.vz_entry.get())
 
         if self.threshd >= self.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
             self.toggleRunButton("off")
             return
+        
+        if self.vz < 0 or self.vz > self.xdim:
+            self.errMessage("Value Error","Vertex of reaction outside detector")
 
         if self.run_button["state"] == "disabled":
             self.toggleRunButton("on")
@@ -146,7 +158,7 @@ class Window(Tk):
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
                         self.er,self.me,self.ee,self.ke,self.cm,
                         self.nreactions,self.xdim,self.ydim,
-                        self.dead,self.threshd)
+                        self.dead,self.threshd,self.vz)
         
     def run(self):
         self.toggleRunButton("off")
@@ -166,14 +178,22 @@ class Window(Tk):
         elif state == "on":
             self.run_button["state"] = "active"
         
-    def createFigViewer():
-        pass
+    def infoWin(self):
+        def delete_monitor(self: GUI) -> None:
+            self.infoWindow.destroy()
+            self.info_button['state'] = 'active'
+
+        self.infoWindow = Toplevel(master=self)
+        self.infoWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
+        self.infoWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
+        self.infoWindow.title('websites.csv')
+        self.info_button['state'] = 'disabled'
 
 class Kinematics():
     def __init__(self):
         pass
 
-    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd) -> None:
+    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd,vz) -> None:
         '''
         Sets Variables for genKinematics
         '''
@@ -209,6 +229,7 @@ class Kinematics():
         # print(self.cm)
         self.nreactions = nreactions
         # print(self.nreactions)
+        self.vz = vz
         self.labA1 = self.labAngle(self.me,self.mr,cm)
         self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
         self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
@@ -216,27 +237,40 @@ class Kinematics():
         print(self.labA1,self.labE1,self.labA2,self.labE2)
 
     def determineDetected(self):
-        detection = np.zeros((3,self.nreactions))
+        self.detectedVert = []
         for i in range(self.nreactions):
             vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
-            detection[2][i] = vz
             y1 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA1))
             y2 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA2))
             if y2 >= self.threshd:
-                detection[1][i] = 1.0
+                self.detectedVert.append(vz)
             elif y1 >= self.threshd:
-                detection[0][i] = 1.0
-        self.detectedVert = detection[2][np.logical_or(detection[0]==1.0,detection[1]==1.0)]
+                self.detectedVert.append(vz)
 
         if len(self.detectedVert) <= 0:
             GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
             return
         
+        self.detection2 = []
+        for i in range(self.nreactions):
+            cm = np.random.uniform(low=0,high=np.pi)
+            A1 = self.labAngle(self.me,self.mr,cm)
+            A2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
+            y1 = (self.xdim-self.vz)/np.tan((np.pi/2)-abs(A1))
+            y2 = (self.xdim-self.vz)/np.tan((np.pi/2)-abs(A2))
+            if y2 >= self.threshd:
+                self.detection2.append(cm)
+            elif y1 >= self.threshd:
+                self.detection2.append(cm)
+
+        if len(self.detection2) <= 0:
+            GUI.errMessage("Reaction Error","No particles detected")
+
         GUI.toggleRunButton(state="on")
 
         p = mp.Process(target=self.createFig)
         p.start()
-        
+
     def createFig(self):
         fig,ax = plt.subplots(nrows=2,ncols=1)
         ax[0].set_xlabel("Vertex of Reaction")
@@ -253,7 +287,10 @@ class Kinematics():
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
-        ax[1].hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        if len(self.detection2) > 0:
+            ax[1].hist(self.detection2,bins=np.arange(min(self.detection2),max(self.detection2)+0.1,0.01))
+        else:
+            ax[1].hist(self.detection2)
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
         plt.show()
