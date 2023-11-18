@@ -186,7 +186,7 @@ class Window(Tk):
         self.infoWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
         self.infoWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
         self.infoWindow.title('What is this?')
-        self.resizable(False, False)
+        self.infoWindow.resizable(False, False)
         self.info_button['state'] = 'disabled'
 
         self.infoFrame = Frame(self.infoWindow)
