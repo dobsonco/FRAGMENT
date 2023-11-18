@@ -25,7 +25,7 @@ class Window(Tk):
         
         self.protocol("WM_DELETE_WINDOW",self.on_x)
         self.title("AT-TPC Sim")
-        #self.resizable(False, False)
+        self.resizable(False, False)
         self.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
 
         self.frame = Frame(self)
@@ -186,6 +186,7 @@ class Window(Tk):
         self.infoWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
         self.infoWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
         self.infoWindow.title('What is this?')
+        self.resizable(False, False)
         self.info_button['state'] = 'disabled'
 
         self.infoFrame = Frame(self.infoWindow)
@@ -289,7 +290,7 @@ class Kinematics():
         fig,ax = plt.subplots(nrows=2,ncols=1)
         ax[0].set_xlabel("Vertex of Reaction")
         ax[0].set_ylabel("Counts")
-        ax[0].set_title("Number of detections")
+        ax[0].set_title(f"Number of detections for cm = {self.cm}")
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
@@ -297,7 +298,7 @@ class Kinematics():
 
         ax[1].set_xlabel("CM Angle")
         ax[1].set_ylabel("Counts")
-        ax[1].set_title("Number of detections")
+        ax[1].set_title(f"Number of detections at vz = {self.vz}")
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
