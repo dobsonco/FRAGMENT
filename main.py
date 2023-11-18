@@ -1,10 +1,9 @@
 from tkinter import *
-from tkinter import ttk
 from tkinter import messagebox
 import numpy as np
 import matplotlib.pyplot as plt
 import threading as th
-from PIL import ImageTk,Image
+from PIL import ImageTk
 from sys import path
 import os
 import multiprocessing as mp
@@ -26,7 +25,7 @@ class Window(Tk):
         
         self.protocol("WM_DELETE_WINDOW",self.on_x)
         self.title("AT-TPC Sim")
-        self.resizable(False, False)
+        #self.resizable(False, False)
         self.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
 
         self.frame = Frame(self)
@@ -186,8 +185,23 @@ class Window(Tk):
         self.infoWindow = Toplevel(master=self)
         self.infoWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
         self.infoWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(resource_path,'FRIBlogo.png'),format='png'))
-        self.infoWindow.title('websites.csv')
+        self.infoWindow.title('What is this?')
         self.info_button['state'] = 'disabled'
+
+        self.infoFrame = Frame(self.infoWindow)
+        self.infoFrame.pack()
+
+        self.infoLabelReaction = LabelFrame(self.infoFrame,text="Reaction Frame Info")
+        self.infoLabelReaction.grid(row=0,column=0,sticky="ew",padx=10,pady=5)
+
+        self.infoMessageReaction = Message(self.infoLabelReaction,text='''In the reaction frame, you can enter the Mass of the Beam (i.e. the mass of particles in beam), the Mass of the Target, the kinetic energy of the beam particles, the mass of the Beamlike product, the mass of the Targetlike product, the number of reactions to generate and the vertex of the reaction for the second plot''',aspect=700)
+        self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
+
+        self.infoLabelDims = LabelFrame(self.infoFrame,text="Dimension Info")
+        self.infoLabelDims.grid(row=1,column=0,sticky="ew",padx=10,pady=5)
+
+        self.infoMessageReaction = Message(self.infoLabelDims,text='''In the Dimensions frame, you can enter the Length of the detector (X dimension), the center of mass angle (cm) of the reaction, the deadzone at the center of the detector (for more info, look at the design for the AT-TPC), and the threshold for detection (this is the distance outside of the deadzone required to classify the particle). ''',aspect=700)
+        self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
 
 class Kinematics():
     def __init__(self):
@@ -291,6 +305,7 @@ class Kinematics():
             ax[1].hist(self.detection2,bins=np.arange(min(self.detection2),max(self.detection2)+0.1,0.01))
         else:
             ax[1].hist(self.detection2)
+
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
         plt.show()
