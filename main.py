@@ -151,14 +151,14 @@ class Window(Tk):
         if self.vz < 0 or self.vz > self.xdim:
             self.errMessage("Value Error","Vertex of reaction outside detector")
 
-        if self.run_button["state"] == "disabled":
-            self.toggleRunButton("on")
-
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
                         self.er,self.me,self.ee,self.ke,self.cm,
                         self.nreactions,self.xdim,self.ydim,
                         self.dead,self.threshd,self.vz)
         
+        if self.run_button["state"] == "disabled":
+            self.toggleRunButton("on")
+
     def run(self):
         self.toggleRunButton("off")
         t = th.Thread(self.KM.determineDetected())
