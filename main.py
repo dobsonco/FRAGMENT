@@ -70,11 +70,6 @@ class Window(Tk):
         self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
         self.nreaction_entry.grid(row=3,column=2)
 
-        self.vz_label = Label(self.reaction_frame, text = "Vertex of Reaction")
-        self.vz_label.grid(row=2,column=3)
-        self.vz_entry = Entry(self.reaction_frame,textvariable=IntVar(value=50))
-        self.vz_entry.grid(row=3,column=3)
-
         for widget in self.reaction_frame.winfo_children():
            widget.grid_configure(padx=5,pady=5)
 
@@ -141,20 +136,16 @@ class Window(Tk):
         self.er = self.mr * amu
         self.cm = int(self.comangle_entry.get()) * (np.pi / 180)
         self.nreactions = int(self.nreaction_entry.get()) * 1000
-        self.vz = int(self.vz_entry.get())
 
         if self.threshd >= self.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
             self.toggleRunButton("off")
             return
-        
-        if self.vz < 0 or self.vz > self.xdim:
-            self.errMessage("Value Error","Vertex of reaction outside detector")
 
         self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
                         self.er,self.me,self.ee,self.ke,self.cm,
                         self.nreactions,self.xdim,self.ydim,
-                        self.dead,self.threshd,self.vz)
+                        self.dead,self.threshd)
         
         if self.run_button["state"] == "disabled":
             self.toggleRunButton("on")
@@ -208,7 +199,7 @@ class Kinematics():
     def __init__(self):
         pass
 
-    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd,vz) -> None:
+    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd) -> None:
         '''
         Sets Variables for genKinematics
         '''
@@ -244,7 +235,6 @@ class Kinematics():
         # print(self.cm)
         self.nreactions = nreactions
         # print(self.nreactions)
-        self.vz = vz
         self.labA1 = self.labAngle(self.me,self.mr,cm)
         self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
         self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
@@ -269,10 +259,11 @@ class Kinematics():
         self.detection2 = []
         for i in range(self.nreactions):
             cm = np.random.uniform(low=0,high=np.pi)
+            vz = np.random.uniform(low=0,high=self.xdim)
             A1 = self.labAngle(self.me,self.mr,cm)
             A2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
-            y1 = (self.xdim-self.vz)/np.tan((np.pi/2)-abs(A1))
-            y2 = (self.xdim-self.vz)/np.tan((np.pi/2)-abs(A2))
+            y1 = (self.xdim-vz)/np.tan((np.pi/2)-abs(A1))
+            y2 = (self.xdim-vz)/np.tan((np.pi/2)-abs(A2))
             if y2 >= self.threshd:
                 self.detection2.append(cm)
             elif y1 >= self.threshd:
@@ -298,7 +289,7 @@ class Kinematics():
 
         ax[1].set_xlabel("CM Angle")
         ax[1].set_ylabel("Counts")
-        ax[1].set_title(f"Number of detections at vz = {self.vz}")
+        ax[1].set_title(f"Number of detections with random cm and vz")
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
