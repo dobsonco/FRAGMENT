@@ -284,14 +284,14 @@ class Kinematics():
         p.start()
 
     def createFig(self):
-        fig,ax = plt.subplots(nrows=3,ncols=1)
+        fig,ax = plt.subplots(nrows=3,ncols=1,dpi=150)
         ax[0].set_xlabel("Vertex of Reaction")
         ax[0].set_ylabel("Counts")
         ax[0].set_title(f"Number of detections for cm = {self.cm}")
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
-        ax[0].hist(self.detectedVert1,bins=np.arange(min(self.detectedVert1),max(self.detectedVert1)+0.1,0.2))
+        ax[0].hist(self.detectedVert1,bins=np.arange(min(self.detectedVert1),max(self.detectedVert1)+0.1,0.4))
         ax[0].set_xticks(ticks=np.arange(0,self.xdim+int(self.xdim/10),int(self.xdim/10)).astype(int))
         ax[0].set_xlim(0,self.xdim)
 
@@ -302,7 +302,7 @@ class Kinematics():
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
         if len(self.detectedCM2) > 0:
-            ax[1].hist(self.detectedCM2,bins=np.arange(min(self.detectedCM2),max(self.detectedCM2)+0.1,0.01))
+            ax[1].hist(self.detectedCM2,bins=np.arange(min(self.detectedCM2),max(self.detectedCM2)+0.1,0.015))
         else:
             ax[1].hist(self.detectedCM2)
         ax[1].set_xlim(0,np.pi)
@@ -314,7 +314,7 @@ class Kinematics():
         ax[2].set_axisbelow(True)
         ax[2].yaxis.grid(color='white', linestyle='-')
         if len(self.detectedVert2) > 0:
-            ax[2].hist(self.detectedVert2,bins=np.arange(min(self.detectedVert2),max(self.detectedVert2)+0.1,0.01))
+            ax[2].hist(self.detectedVert2,bins=np.arange(min(self.detectedVert2),max(self.detectedVert2)+0.1,0.4))
         else:
             ax[2].hist(self.detectedVert2)
         ax[2].set_xlim(0,self.xdim)
