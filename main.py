@@ -239,25 +239,26 @@ class Kinematics():
         self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
         self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
         self.labE2 = self.labEnergy(self.mr,self.me,self.labA2,-np.pi+cm)/self.mr
-        print("A1: ",self.labA1,self.labE1,"A2: ",self.labA2,self.labE2)
+        print("A1: ",self.labA1,"E1: ",self.labE1,"A2: ",self.labA2,"E2",self.labE2)
 
     def determineDetected(self):
-        self.detectedVert = []
+        self.detectedVert1 = []
         for i in range(self.nreactions):
             vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
             y1 = (self.xdim-vz)*np.tan(abs(self.labA1))
             y2 = (self.xdim-vz)*np.tan(abs(self.labA2))
             if y2 >= self.threshd:
-                self.detectedVert.append(vz)
+                self.detectedVert1.append(vz)
             elif y1 >= self.threshd:
-                self.detectedVert.append(vz)
-        print(f"Num Detected Vert = {len(self.detectedVert)}")
+                self.detectedVert1.append(vz)
+        print(f"Num Detected Vert = {len(self.detectedVert1)}")
 
-        if len(self.detectedVert) <= 0:
+        if len(self.detectedVert1) <= 0:
             GUI.errMessage("Reaction Error","No particles detected")
             return
         
-        self.detection2 = []
+        self.detectedCM2 = []
+        self.detectedVert2 = []
         for i in range(self.nreactions):
             cm = np.random.uniform(low=0,high=np.pi)
             vz = np.random.uniform(low=0,high=self.xdim)
@@ -266,13 +267,14 @@ class Kinematics():
             y1 = (self.xdim-vz)*np.tan(abs(A1))
             y2 = (self.xdim-vz)*np.tan(abs(A2))
             if y2 >= self.threshd:
-                self.detection2.append(cm)
+                self.detectedCM2.append(cm)
+                self.detectedVert2.append(vz)
             elif y1 >= self.threshd:
-                self.detection2.append(cm)
-        print(f"Num Detected Vert (Random) = {len(self.detection2)}")
+                self.detectedCM2.append(cm)
+                self.detectedVert2.append(vz)
+        print(f"Num Detected Vert (Random) = {len(self.detectedCM2)}")
             
-
-        if len(self.detection2) <= 0:
+        if len(self.detectedVert2) <= 0:
             GUI.errMessage("Reaction Error","No particles detected")
             return
 
@@ -282,14 +284,14 @@ class Kinematics():
         p.start()
 
     def createFig(self):
-        fig,ax = plt.subplots(nrows=2,ncols=1)
+        fig,ax = plt.subplots(nrows=3,ncols=1)
         ax[0].set_xlabel("Vertex of Reaction")
         ax[0].set_ylabel("Counts")
         ax[0].set_title(f"Number of detections for cm = {self.cm}")
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
-        ax[0].hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        ax[0].hist(self.detectedVert1,bins=np.arange(min(self.detectedVert1),max(self.detectedVert1)+0.1,0.2))
         ax[0].set_xticks(ticks=np.arange(0,self.xdim+int(self.xdim/10),int(self.xdim/10)).astype(int))
         ax[0].set_xlim(0,self.xdim)
 
@@ -299,11 +301,23 @@ class Kinematics():
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
-        if len(self.detection2) > 0:
-            ax[1].hist(self.detection2,bins=np.arange(min(self.detection2),max(self.detection2)+0.1,0.01))
+        if len(self.detectedCM2) > 0:
+            ax[1].hist(self.detectedCM2,bins=np.arange(min(self.detectedCM2),max(self.detectedCM2)+0.1,0.01))
         else:
-            ax[1].hist(self.detection2)
+            ax[1].hist(self.detectedCM2)
         ax[1].set_xlim(0,np.pi)
+
+        ax[2].set_xlabel("Detected Vertices")
+        ax[2].set_ylabel("Counts")
+        ax[2].set_title(f"Number of detections with random cm and vz")
+        ax[2].set_facecolor('#ADD8E6')
+        ax[2].set_axisbelow(True)
+        ax[2].yaxis.grid(color='white', linestyle='-')
+        if len(self.detectedVert2) > 0:
+            ax[2].hist(self.detectedVert2,bins=np.arange(min(self.detectedVert2),max(self.detectedVert2)+0.1,0.01))
+        else:
+            ax[2].hist(self.detectedVert2)
+        ax[2].set_xlim(0,self.xdim)
 
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
