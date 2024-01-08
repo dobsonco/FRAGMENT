@@ -239,21 +239,22 @@ class Kinematics():
         self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
         self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
         self.labE2 = self.labEnergy(self.mr,self.me,self.labA2,-np.pi+cm)/self.mr
-        print(self.labA1,self.labE1,self.labA2,self.labE2)
+        print("A1: ",self.labA1,self.labE1,"A2: ",self.labA2,self.labE2)
 
     def determineDetected(self):
         self.detectedVert = []
         for i in range(self.nreactions):
             vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
-            y1 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA1))
-            y2 = (self.xdim-vz)/np.tan((np.pi/2)-abs(self.labA2))
+            y1 = (self.xdim-vz)*np.tan(abs(self.labA1))
+            y2 = (self.xdim-vz)*np.tan(abs(self.labA2))
             if y2 >= self.threshd:
                 self.detectedVert.append(vz)
             elif y1 >= self.threshd:
                 self.detectedVert.append(vz)
+        print(f"Num Detected Vert = {len(self.detectedVert)}")
 
         if len(self.detectedVert) <= 0:
-            GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
+            GUI.errMessage("Reaction Error","No particles detected")
             return
         
         self.detection2 = []
@@ -262,15 +263,18 @@ class Kinematics():
             vz = np.random.uniform(low=0,high=self.xdim)
             A1 = self.labAngle(self.me,self.mr,cm)
             A2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
-            y1 = (self.xdim-vz)/np.tan((np.pi/2)-abs(A1))
-            y2 = (self.xdim-vz)/np.tan((np.pi/2)-abs(A2))
+            y1 = (self.xdim-vz)*np.tan(abs(A1))
+            y2 = (self.xdim-vz)*np.tan(abs(A2))
             if y2 >= self.threshd:
                 self.detection2.append(cm)
             elif y1 >= self.threshd:
                 self.detection2.append(cm)
+        print(f"Num Detected Vert (Random) = {len(self.detection2)}")
+            
 
         if len(self.detection2) <= 0:
             GUI.errMessage("Reaction Error","No particles detected")
+            return
 
         GUI.toggleRunButton(state="on")
 
@@ -286,6 +290,8 @@ class Kinematics():
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
         ax[0].hist(self.detectedVert,bins=np.arange(min(self.detectedVert),max(self.detectedVert)+0.1,0.2))
+        ax[0].set_xticks(ticks=np.arange(0,self.xdim+int(self.xdim/10),int(self.xdim/10)).astype(int))
+        ax[0].set_xlim(0,self.xdim)
 
         ax[1].set_xlabel("CM Angle")
         ax[1].set_ylabel("Counts")
@@ -297,6 +303,7 @@ class Kinematics():
             ax[1].hist(self.detection2,bins=np.arange(min(self.detection2),max(self.detection2)+0.1,0.01))
         else:
             ax[1].hist(self.detection2)
+        ax[1].set_xlim(0,np.pi)
 
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
