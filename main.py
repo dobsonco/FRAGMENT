@@ -124,7 +124,7 @@ class Window(Tk):
         self.KM.xdim = float(self.x_dim_entry.get())
         self.KM.ydim = float(self.y_dim_entry.get())
         self.KM.dead = float(self.deadzone_entry.get())
-        self.KM.threshd = float(self.threshold_entry.get()) #  + self.dead
+        self.KM.threshd = float(self.threshold_entry.get())
         self.KM.zp = int(self.zbeam_entry.get())
         self.KM.mp = int(self.mbeam_entry.get())
         self.KM.ke  = float(self.beamke_entry.get()) # kinetic energy in MeV/u
@@ -143,6 +143,26 @@ class Window(Tk):
 
         if self.KM.threshd >= self.KM.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
+            self.toggleRunButton("off")
+            return
+        
+        if self.KM.dead >= self.KM.ydim:
+            self.errMessage("Value Error", "Detection deadzone greater than radius of detector")
+            self.toggleRunButton("off")
+            return
+        
+        if self.KM.zp > self.KM.mp:
+            self.errMessage("Value Error", "Projectile Z less than A ")
+            self.toggleRunButton("off")
+            return
+
+        if self.KM.zt > self.KM.mt:
+            self.errMessage("Value Error", "Target Z less than A ")
+            self.toggleRunButton("off")
+            return
+        
+        if self.KM.zr > self.KM.mr:
+            self.errMessage("Value Error", "Targetlike Z less than A ")
             self.toggleRunButton("off")
             return
 
@@ -286,7 +306,7 @@ class Kinematics:
         ax[0].yaxis.grid(color='white', linestyle='-')
         ax[0].hist(self.detectedVert,bins=100,range=(0,self.xdim))
 
-        ax[1].set_xlabel("CM Angle")
+        ax[1].set_xlabel("CM Angle (deg)")
         ax[1].set_ylabel("Counts")
         ax[1].set_title(f"Number of detections with random cm and vz")
         ax[1].set_facecolor('#ADD8E6')
