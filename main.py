@@ -176,7 +176,7 @@ class Window(Tk):
         t = Thread(self.KM.determineDetected())
         t.start()
 
-    def errMessage(self,errtype: str,message: str) -> None:
+    def errMessage(self, errtype: str, message: str) -> None:
         messagebox.showwarning(title=errtype,message=message)
 
     def toggleRunButton(self,state) -> None:
@@ -227,10 +227,18 @@ class Kinematics:
         '''
         # The Q value is the difference between the incoming and outgoing masses, expressed in MeV
         amu = 931.5
-        mexp = self.mexcess[self.zp, self.mp-self.zp]
-        mext = self.mexcess[self.zt, self.mt-self.zt]
-        mexr = self.mexcess[self.zr, self.mr-self.zr]
-        mexe = self.mexcess[self.ze, self.me-self.ze]
+        try:
+            mexp = self.mexcess[self.zp, self.mp-self.zp]
+            mext = self.mexcess[self.zt, self.mt-self.zt]
+            mexr = self.mexcess[self.zr, self.mr-self.zr]
+            mexe = self.mexcess[self.ze, self.me-self.ze]
+        except:
+            GUI.errMessage("Missing Mass Excess","Missing mass excess for selected nuclei, proceeding without exact numbers")
+            mexp=0
+            mext=0
+            mexr=0
+            mexe=0
+        
         self.mp = (self.mp*amu + mexp) / amu # convert mass to amu units
         self.mt = (self.mt*amu + mext) / amu # convert mass to amu units
         self.mr = (self.mr*amu + mexr) / amu # convert mass to amu units
