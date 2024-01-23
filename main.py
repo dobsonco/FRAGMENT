@@ -2,18 +2,17 @@ from tkinter import *
 from tkinter import messagebox
 import numpy as np
 import matplotlib.pyplot as plt
-import threading as th
+from threading import Thread
 from PIL import ImageTk
 from sys import path
 import os
-import multiprocessing as mp
+from multiprocessing import Process
+from pandas import read_csv
 
 global sys_path
 sys_path = path[0]
 global resource_path
 resource_path = os.path.join(sys_path,"Resources")
-global amu
-amu = 931.5
 global temp_folder
 temp_folder = os.path.join(sys_path,"temp")
 
@@ -33,42 +32,43 @@ class Window(Tk):
 
         # Creating Reaction Input Frame
         self.reaction_frame = LabelFrame(self.frame, text = "Reaction Info")
-        self.reaction_frame.grid(row=0,column=0,sticky="ew",padx=10,pady=5)
+        self.reaction_frame.grid(row=0,column=0,sticky="ew",padx=10,pady=3)
 
-        self.mbeam_label = Label(self.reaction_frame, text = "Mass of Beam (amu)")
+        self.mbeam_label = Label(self.reaction_frame, text = "Z and A of Beam")
         self.mbeam_label.grid(row=0,column=0)
-        self.mbeam_entry = Entry(self.reaction_frame,textvariable=IntVar(value=12))
-        self.mbeam_entry.grid(row=1,column=0)
+        self.zbeam_entry = Entry(self.reaction_frame,textvariable=IntVar(value=4))
+        self.zbeam_entry.grid(row=1,column=0)
+        self.mbeam_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
+        self.mbeam_entry.grid(row=2,column=0)
 
-        self.mtarget_label = Label(self.reaction_frame, text = "Mass of Target (amu)")
+        self.mtarget_label = Label(self.reaction_frame, text = "Z and A of Target")
         self.mtarget_label.grid(row=0,column=1)
+        self.ztarget_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
+        self.ztarget_entry.grid(row=1,column=1)
         self.mtarget_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
-        self.mtarget_entry.grid(row=1,column=1)
+        self.mtarget_entry.grid(row=2,column=1)
 
-        self.beamke_label = Label(self.reaction_frame,text="Beam KE (MeV)")
-        self.beamke_label.grid(row=0,column=2)
-        self.beamke_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1000))
-        self.beamke_entry.grid(row=1,column=2)
+        self.mtargetlike_label = Label(self.reaction_frame, text = "Z and A of Targetlike")
+        self.mtargetlike_label.grid(row=0,column=2)
+        self.ztargetlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
+        self.ztargetlike_entry.grid(row=1,column=2)
+        self.mtargetlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
+        self.mtargetlike_entry.grid(row=2,column=2)
 
-        self.mbeamlike_label = Label(self.reaction_frame, text = "Mass of Beamlike (amu)")
-        self.mbeamlike_label.grid(row=0,column=3)
-        self.mbeamlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
-        self.mbeamlike_entry.grid(row=1,column=3)
-
-        self.mtargetlike_label = Label(self.reaction_frame, text = "Mass of Targetlike (amu)")
-        self.mtargetlike_label.grid(row=2,column=0)
-        self.mtargetlike_entry = Entry(self.reaction_frame,textvariable=IntVar(value=3))
-        self.mtargetlike_entry.grid(row=3,column=0)
+        self.beamke_label = Label(self.reaction_frame,text="Beam KE (MeV/u)")
+        self.beamke_label.grid(row=3,column=0)
+        self.beamke_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
+        self.beamke_entry.grid(row=4,column=0)
 
         self.comangle_label = Label(self.reaction_frame, text = "Enter CM Angle (deg)")
-        self.comangle_label.grid(row=2,column=1)
-        self.comangle_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
-        self.comangle_entry.grid(row=3,column=1)
+        self.comangle_label.grid(row=3,column=1)
+        self.comangle_entry = Entry(self.reaction_frame,textvariable=IntVar(value=45))
+        self.comangle_entry.grid(row=4,column=1)
 
         self.nreaction_label = Label(self.reaction_frame, text = "# Reactions (thousands)")
-        self.nreaction_label.grid(row=2,column=2)
+        self.nreaction_label.grid(row=3,column=2)
         self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
-        self.nreaction_entry.grid(row=3,column=2)
+        self.nreaction_entry.grid(row=4,column=2)
 
         for widget in self.reaction_frame.winfo_children():
            widget.grid_configure(padx=5,pady=5)
@@ -84,18 +84,18 @@ class Window(Tk):
 
         self.y_dim_label = Label(self.dim_frame, text = "Enter Radius (cm)")
         self.y_dim_label.grid(row=0,column=1)
-        self.y_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=18))
+        self.y_dim_entry = Entry(self.dim_frame,textvariable=IntVar(value=28))
         self.y_dim_entry.grid(row=1,column=1)
 
         self.deadzone_label = Label(self.dim_frame, text = "Enter Deadzone (cm)")
         self.deadzone_label.grid(row=0,column=2)
-        self.deadzone_entry = Entry(self.dim_frame,textvariable=IntVar(value=6))
+        self.deadzone_entry = Entry(self.dim_frame,textvariable=IntVar(value=3))
         self.deadzone_entry.grid(row=1,column=2)
 
         self.threshold_label = Label(self.dim_frame, text="Threshold to Detect (cm)")
-        self.threshold_label.grid(row=0,column=3)
-        self.threshold_entry = Entry(self.dim_frame,textvariable=IntVar(value=3))
-        self.threshold_entry.grid(row=1,column=3)
+        self.threshold_label.grid(row=2,column=0)
+        self.threshold_entry = Entry(self.dim_frame,textvariable=IntVar(value=6))
+        self.threshold_entry.grid(row=3,column=0)
 
         for widget in self.dim_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
@@ -117,48 +117,69 @@ class Window(Tk):
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
 
-    def on_x(self):
+    def on_x(self) -> None:
         self.destroy()
 
-    def read_input(self):
-        self.xdim = int(self.x_dim_entry.get())
-        self.ydim = int(self.y_dim_entry.get())
-        self.dead = int(self.deadzone_entry.get())
-        self.threshd = int(self.threshold_entry.get()) + self.dead
-        self.ke = int(self.beamke_entry.get())
-        self.mp = int(self.mbeam_entry.get())
-        self.ep = self.mp * amu + self.ke
-        self.mt = int(self.mtarget_entry.get())
-        self.et = self.mt * amu
-        self.me = int(self.mbeamlike_entry.get())
-        self.ee = self.me * amu
-        self.mr = int(self.mtargetlike_entry.get())
-        self.er = self.mr * amu
-        self.cm = int(self.comangle_entry.get()) * (np.pi / 180)
-        self.nreactions = int(self.nreaction_entry.get()) * 1000
+    def read_input(self) -> None:
+        self.KM.xdim = float(self.x_dim_entry.get())
+        self.KM.ydim = float(self.y_dim_entry.get())
+        self.KM.dead = float(self.deadzone_entry.get())
+        self.KM.threshd = float(self.threshold_entry.get())
+        self.KM.zp = int(self.zbeam_entry.get())
+        self.KM.mp = int(self.mbeam_entry.get())
+        self.KM.ke  = float(self.beamke_entry.get()) # kinetic energy in MeV/u
+        self.KM.ep = self.KM.ke*self.KM.mp # kinetic energy in MeV
+        self.KM.zt = int(self.ztarget_entry.get())
+        self.KM.mt = int(self.mtarget_entry.get())
+        self.KM.et = 0 # target is at rest
+        self.KM.zr = int(self.ztargetlike_entry.get())
+        self.KM.mr = int(self.mtargetlike_entry.get())
+        self.KM.ee = 0
+        self.KM.ze = self.KM.zp + self.KM.zt - self.KM.zr # Conservation of Z
+        self.KM.me = self.KM.mp + self.KM.mt - self.KM.mr # Conservation of A
+        self.KM.er = 0
+        self.KM.cm = float(self.comangle_entry.get()) * (np.pi / 180) # in rad
+        self.KM.nreactions = int(self.nreaction_entry.get()) * 1000
 
-        if self.threshd >= self.ydim:
+        if self.KM.threshd >= self.KM.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
             self.toggleRunButton("off")
             return
+        
+        if self.KM.dead >= self.KM.ydim:
+            self.errMessage("Value Error", "Detection deadzone greater than radius of detector")
+            self.toggleRunButton("off")
+            return
+        
+        if self.KM.zp > self.KM.mp:
+            self.errMessage("Value Error", "Projectile Z less than A ")
+            self.toggleRunButton("off")
+            return
 
-        self.KM.setKinematics(self.mp,self.ep,self.mt,self.et,self.mr,
-                        self.er,self.me,self.ee,self.ke,self.cm,
-                        self.nreactions,self.xdim,self.ydim,
-                        self.dead,self.threshd)
+        if self.KM.zt > self.KM.mt:
+            self.errMessage("Value Error", "Target Z less than A ")
+            self.toggleRunButton("off")
+            return
+        
+        if self.KM.zr > self.KM.mr:
+            self.errMessage("Value Error", "Targetlike Z less than A ")
+            self.toggleRunButton("off")
+            return
+
+        self.KM.setKinematics()
         
         if self.run_button["state"] == "disabled":
             self.toggleRunButton("on")
 
-    def run(self):
+    def run(self) -> None:
         self.toggleRunButton("off")
-        t = th.Thread(self.KM.determineDetected())
+        t = Thread(self.KM.determineDetected())
         t.start()
 
-    def errMessage(self,errtype: str,message: str):
+    def errMessage(self, errtype: str, message: str) -> None:
         messagebox.showwarning(title=errtype,message=message)
 
-    def toggleRunButton(self,state):
+    def toggleRunButton(self,state) -> None:
         """
         options for state:
         "on" or "off"
@@ -168,7 +189,7 @@ class Window(Tk):
         elif state == "on":
             self.run_button["state"] = "active"
         
-    def infoWin(self):
+    def infoWin(self) -> None:
         def delete_monitor(self: GUI) -> None:
             self.infoWindow.destroy()
             self.info_button['state'] = 'active'
@@ -186,138 +207,128 @@ class Window(Tk):
         self.infoLabelReaction = LabelFrame(self.infoFrame,text="Reaction Frame Info")
         self.infoLabelReaction.grid(row=0,column=0,sticky="ew",padx=10,pady=5)
 
-        self.infoMessageReaction = Message(self.infoLabelReaction,text='''In the reaction frame, you can enter the Mass of the Beam (i.e. the mass of particles in beam), the Mass of the Target, the kinetic energy of the beam particles, the mass of the Beamlike product, the mass of the Targetlike product, the number of reactions to generate and the vertex of the reaction for the second plot''',aspect=700)
+        self.infoMessageReaction = Message(self.infoLabelReaction,text='''In the reaction frame, you can enter the Proton Count (Z) and Mass (A) of the Beam, the Z and A of the Target, the Z and A of the Targetlike product, the kinetic energy of the beam particles (MeV/u), the center of mass angle (deg), and the number of reactions to generate''',aspect=700)
         self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
 
         self.infoLabelDims = LabelFrame(self.infoFrame,text="Dimension Info")
         self.infoLabelDims.grid(row=1,column=0,sticky="ew",padx=10,pady=5)
 
-        self.infoMessageReaction = Message(self.infoLabelDims,text='''In the Dimensions frame, you can enter the Length of the detector (X dimension), the center of mass angle (cm) of the reaction, the deadzone at the center of the detector (for more info, look at the design for the AT-TPC), and the threshold for detection (this is the distance outside of the deadzone required to classify the particle). ''',aspect=700)
+        self.infoMessageReaction = Message(self.infoLabelDims,text='''In the Dimensions frame, you can enter the Length of the detector (X dimension), the center of mass angle (cm) of the reaction, the deadzone at the center of the detector (for more info, look at the design for the AT-TPC), and the threshold for detection (this is the distance outside of the deadzone required to classify the particle). Particles that do not not pass the threshold but enter the deadzone will be picked up by the zero angle detector.''',aspect=700)
         self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
 
-class Kinematics():
+class Kinematics:
     def __init__(self):
+        self.mexcess = read_csv(os.path.join(resource_path,'mexcess.csv')).to_numpy()
         pass
 
-    def setKinematics(self,mp,ep,mt,et,mr,er,me,ee,ke,cm,nreactions,xdim,ydim,dead,threshd) -> None:
+    def setKinematics(self) -> None:
         '''
         Sets Variables for genKinematics
         '''
-        self.Q = (ep + et) - (er + ee)
-        #print(self.Q)
-        self.mp = mp
-        #print(self.mp)
-        self.ep = ep
-        #print(self.ep)
-        self.mt = mt
-        #print(self.mt)
-        self.et = et
-        #print(self.et)
-        self.mr = mr
-        #print(self.mr)
-        self.er = er
-        #print(self.er)
-        self.me = me
-        #print(self.me)
-        self.ee = ee
-        #print(self.ee)
-        self.ke = ke
-        #print(self.ke)
-        self.xdim = xdim
-        #print(self.xdim)
-        self.ydim = ydim
-        #print(self.ydim)
-        self.dead = dead
-        #print(self.dead)
-        self.threshd = threshd
-        #print(self.threshd)
-        self.cm = cm
-        # print(self.cm)
-        self.nreactions = nreactions
-        # print(self.nreactions)
-        self.labA1 = self.labAngle(self.me,self.mr,cm)
-        self.labE1 = self.labEnergy(self.me,self.mr,self.labA1,cm)/self.me
-        self.labA2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
-        self.labE2 = self.labEnergy(self.mr,self.me,self.labA2,-np.pi+cm)/self.mr
-        print("A1: ",self.labA1,"E1: ",self.labE1,"A2: ",self.labA2,"E2",self.labE2)
+        # The Q value is the difference between the incoming and outgoing masses, expressed in MeV
+        amu = 931.5
+        try:
+            mexp = self.mexcess[self.zp, self.mp-self.zp]
+            mext = self.mexcess[self.zt, self.mt-self.zt]
+            mexr = self.mexcess[self.zr, self.mr-self.zr]
+            mexe = self.mexcess[self.ze, self.me-self.ze]
+        except:
+            GUI.errMessage("Missing Mass Excess","Missing mass excess for selected nuclei, proceeding without exact numbers")
+            mexp=0
+            mext=0
+            mexr=0
+            mexe=0
+        
+        self.mp = (self.mp*amu + mexp) / amu # convert mass to amu units
+        self.mt = (self.mt*amu + mext) / amu # convert mass to amu units
+        self.mr = (self.mr*amu + mexr) / amu # convert mass to amu units
+        self.me = (self.me*amu + mexe) / amu # convert mass to amu units
+        self.Q = (self.mp + self.mt - self.mr - self.me) * amu # in MeV
 
-    def determineDetected(self):
-        self.detectedVert1 = []
+        self.labA1 = self.labAngle()
+        self.labE1 = self.labEnergy(self.mr,self.me,self.labA1)/self.mr
+        self.labA2 = self.labAngle2()
+        self.labE2 = self.labEnergy(self.me,self.mr,self.labA2)/self.me # Swap mr and me for the beam-like
+        print("A1:",self.labA1*180/np.pi,"E1:",self.labE1,"A2:",self.labA2*180/np.pi,"E2:",self.labE2)
+
+    def determineDetected(self) -> None:
+        self.detectedVert = []
+        self.cmangle = self.cm*180/np.pi
         for i in range(self.nreactions):
-            vz = np.random.uniform(low=0.01,high=self.xdim-0.01)
-            y1 = (self.xdim-vz)*np.tan(abs(self.labA1))
-            y2 = (self.xdim-vz)*np.tan(abs(self.labA2))
-            if y2 >= self.threshd:
-                self.detectedVert1.append(vz)
-            elif y1 >= self.threshd:
-                self.detectedVert1.append(vz)
-        print(f"Num Detected Vert = {len(self.detectedVert1)}")
+            vz = np.random.uniform(0.01,self.xdim-0.01)
+            if self.labA1 < np.pi/2:
+                y1 = (self.xdim-vz)*np.tan(self.labA1)
+            else:
+                y1 = vz*np.tan(self.labA1)
+            if self.labA2 < np.pi/2:
+                y2 = (self.xdim-vz)*np.tan(self.labA2)
+            else:
+                y2 = vz*np.tan(self.labA2)
+            # The conditions for a successful event should be:
+            # target-like Y > Deadzone (which means coming out of the dead zone)
+            # AND beam-like Y < Threshold (which means entering in the zero degree detector)
+            if y1 >= self.dead and y2 <= self.threshd:
+                self.detectedVert.append(vz)
 
-        if len(self.detectedVert1) <= 0:
-            GUI.errMessage("Reaction Error","No particles detected")
+        if len(self.detectedVert) <= 0:
+            GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
             return
         
-        self.detectedCM2 = []
-        self.detectedVert2 = []
+        self.detection2 = []
+        self.detection3 = []
         for i in range(self.nreactions):
-            cm = np.random.uniform(low=0,high=np.pi)
-            vz = np.random.uniform(low=0,high=self.xdim)
-            A1 = self.labAngle(self.me,self.mr,cm)
-            A2 = self.labAngle2(self.mr,self.me,-np.pi+cm)
-            y1 = (self.xdim-vz)*np.tan(abs(A1))
-            y2 = (self.xdim-vz)*np.tan(abs(A2))
-            if y2 >= self.threshd:
-                self.detectedCM2.append(cm)
-                self.detectedVert2.append(vz)
-            elif y1 >= self.threshd:
-                self.detectedCM2.append(cm)
-                self.detectedVert2.append(vz)
-        print(f"Num Detected Vert (Random) = {len(self.detectedCM2)}")
-            
-        if len(self.detectedVert2) <= 0:
+            self.cm = np.random.uniform(0,np.pi)
+            vz = np.random.uniform(0,self.xdim)
+            A1 = self.labAngle()
+            A2 = self.labAngle2()
+            if A1 < np.pi/2:
+                y1 = (self.xdim-vz)*np.tan(A1)
+            else:
+                y1 = vz*np.tan(A1)
+            if A2 < np.pi/2:
+                y2 = (self.xdim-vz)*np.tan(A2)
+            else:
+                y2 = vz*np.tan(A2)
+            # The conditions for a successful event should be:
+            # target-like Y > Deadzone (which means coming out of the dead zone)
+            # AND beam-like Y < Threshold (which means entering in the zero degree detector)
+            if y1 >= self.dead and y2 <= self.threshd:
+                self.detection2.append(self.cm*180/np.pi)
+                self.detection3.append(vz)
+
+        if len(self.detection2) <= 0:
             GUI.errMessage("Reaction Error","No particles detected")
-            return
 
         GUI.toggleRunButton(state="on")
 
-        p = mp.Process(target=self.createFig)
+        p = Process(target=self.createFig)
         p.start()
 
-    def createFig(self):
+    def createFig(self) -> None:
         fig,ax = plt.subplots(nrows=3,ncols=1,dpi=150)
         ax[0].set_xlabel("Vertex of Reaction")
         ax[0].set_ylabel("Counts")
-        ax[0].set_title(f"Number of detections for cm = {self.cm}")
+        ax[0].set_title(f"Number of detections for cm = {self.cmangle}")
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
-        ax[0].hist(self.detectedVert1,bins=np.arange(min(self.detectedVert1),max(self.detectedVert1)+0.1,0.4))
-        ax[0].set_xticks(ticks=np.arange(0,self.xdim+int(self.xdim/10),int(self.xdim/10)).astype(int))
-        ax[0].set_xlim(0,self.xdim)
+        ax[0].hist(self.detectedVert,bins=100,range=(0,self.xdim))
 
-        ax[1].set_xlabel("CM Angle")
+        ax[1].set_xlabel("CM Angle (deg)")
         ax[1].set_ylabel("Counts")
         ax[1].set_title(f"Number of detections with random cm and vz")
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
-        if len(self.detectedCM2) > 0:
-            ax[1].hist(self.detectedCM2,bins=np.arange(min(self.detectedCM2),max(self.detectedCM2)+0.1,0.015))
-        else:
-            ax[1].hist(self.detectedCM2)
-        ax[1].set_xlim(0,np.pi)
+        ax[1].hist(self.detection2,bins=180,range=(0,180))
 
-        ax[2].set_xlabel("Detected Vertices")
+        ax[2].set_xlabel("Vertex")
         ax[2].set_ylabel("Counts")
         ax[2].set_title(f"Number of detections with random cm and vz")
         ax[2].set_facecolor('#ADD8E6')
         ax[2].set_axisbelow(True)
         ax[2].yaxis.grid(color='white', linestyle='-')
-        if len(self.detectedVert2) > 0:
-            ax[2].hist(self.detectedVert2,bins=np.arange(min(self.detectedVert2),max(self.detectedVert2)+0.1,0.4))
-        else:
-            ax[2].hist(self.detectedVert2)
-        ax[2].set_xlim(0,self.xdim)
+        ax[2].hist(self.detection3,bins=100,range=(0,self.xdim))
 
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
@@ -326,28 +337,28 @@ class Kinematics():
         plt.clf()
         plt.close('all')
 
-    def labAngle(self,me,mr,cm):
-        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
-        lab = np.arctan2(np.sin(cm),gam-np.cos(cm))
+    def labAngle(self) -> float:
+        gam = np.sqrt(self.mp*self.mr/self.mt/self.me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        lab = np.arctan2(np.sin(self.cm),gam-np.cos(self.cm))
         return lab
 
-    def labAngle2(self,me,mr,cm):
-        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
-        lab = np.arctan2(np.sin(cm),gam+np.cos(cm))
+    def labAngle2(self) -> float:
+        gam = np.sqrt(self.mp*self.me/self.mt/self.mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        lab = np.arctan2(np.sin(self.cm),gam+np.cos(self.cm))
         return lab
 
-    def labEnergy(self,me,mr,th,cm):
-        delta = np.sqrt(self.mp*me*self.ep*np.cos(th)**2 + (mr+me)*(mr*self.Q+(mr-self.mp)*self.ep))
+    def labEnergy(self,mr,me,th) -> float:
+        delta = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         if(np.isnan(delta)):
             print("NaN encountered, Invalid Reaction")
-        fir = np.sqrt(self.mp*me*self.ep)*np.cos(th)
-        e1 = (fir + delta) / (mr+me)
-        e2 = (fir - delta) / (mr+me)
+        fir = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
+        e1 = (fir + delta) / (me+mr)
+        e2 = (fir - delta) / (me+mr)
         e1 = e1**2
         e2 = e2**2
-        gam = np.sqrt(self.mp*me/self.mt/mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
-        arg = np.sin(cm)/(gam-np.cos(cm))
-        der = 1/(1+arg**2)*(gam*np.cos(cm)-1)/(gam-np.cos(cm))**2
+        gam = np.sqrt(self.mp*mr/self.mt/me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
+        arg = np.sin(self.cm)/(gam-np.cos(self.cm))
+        der = 1/(1+arg**2)*(gam*np.cos(self.cm)-1)/(gam-np.cos(self.cm))**2
         if (der < 0):
             return e1
         else:
