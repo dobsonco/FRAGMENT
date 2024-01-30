@@ -152,13 +152,13 @@ class Window(Tk):
         self.KM.ep = self.KM.ke*self.KM.mp # kinetic energy in MeV
         self.KM.zt = int(self.ztarget_entry.get())
         self.KM.mt = int(self.mtarget_entry.get())
-        self.KM.et = 0 # target is at rest
+        #self.KM.et = 0 # target is at rest
         self.KM.zr = int(self.ztargetlike_entry.get())
         self.KM.mr = int(self.mtargetlike_entry.get())
-        self.KM.ee = 0
+        #self.KM.ee = 0
         self.KM.ze = self.KM.zp + self.KM.zt - self.KM.zr # Conservation of Z
         self.KM.me = self.KM.mp + self.KM.mt - self.KM.mr # Conservation of A
-        self.KM.er = 0
+        #self.KM.er = 0
         self.KM.cm = float(self.comangle_entry.get()) * (np.pi / 180) # in rad
         self.KM.nreactions = int(self.nreaction_entry.get()) * 1000
         self.KM.ex = float(self.excitation_entry.get()) # Excitation in MeV
@@ -341,17 +341,64 @@ class Kinematics:
             self.cm = np.random.uniform(0,np.pi)
             A1 = self.labAngle()
             A2 = self.labAngle2()
-            if self.labA1 < np.pi/2:
-                y1 = (self.xdim-vz)*np.tan(self.labA1)
+            if A1 < np.pi/2:
+                y1 = (self.xdim-vz)*np.tan(A1)
             else:
-                y1 = vz*np.tan(self.labA1)
-            if self.labA2 < np.pi/2:
-                y2 = (self.xdim-vz)*np.tan(self.labA2)
+                y1 = vz*np.tan(A1)
+            if A2 < np.pi/2:
+                y2 = (self.xdim-vz)*np.tan(A2)
             else:
-                y2 = vz*np.tan(self.labA2)
+                y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
                 self.Cm1.extend([self.cm,self.cm])
                 self.Energy1.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+
+        self.vz2 = []
+        self.Energy2 = []
+        self.Cm2 = []
+        for _ in range(self.nreactions):
+            self.cm = np.random.uniform(0,np.pi)
+            vz = np.random.uniform(0,self.xdim)
+            A1 = self.labAngle()
+            A2 = self.labAngle2()
+            if A1 < np.pi/2:
+                y1 = (self.xdim-vz)*np.tan(A1)
+            else:
+                y1 = vz*np.tan(A1)
+            if A2 < np.pi/2:
+                y2 = (self.xdim-vz)*np.tan(A2)
+            else:
+                y2 = vz*np.tan(A2)
+            if y1 >= self.dead and y2 <= self.threshd:
+                self.vz2.extend([vz,vz])
+                self.Cm2.extend([self.cm,self.cm])
+                self.Energy2.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+
+        amu = 931.4941024 # MeV/U
+        self.vz3 = []
+        self.Cm3 = []
+        self.Energy3 = []
+        self.Excite3 = []
+        for _ in range(self.nreactions):
+            self.cm = np.random.uniform(0,np.pi)
+            vz = np.random.uniform(0,self.xdim)
+            Ex = np.random.uniform(0,9)
+            self.Q = (self.mp + self.mt - self.mr - self.me) * amu - Ex
+            A1 = self.labAngle()
+            A2 = self.labAngle2()
+            if A1 < np.pi/2:
+                y1 = (self.xdim-vz)*np.tan(A1)
+            else:
+                y1 = vz*np.tan(A1)
+            if A2 < np.pi/2:
+                y2 = (self.xdim-vz)*np.tan(A2)
+            else:
+                y2 = vz*np.tan(A2)
+            if y1 >= self.dead and y2 <= self.threshd:
+                self.vz3.extend([vz,vz])
+                self.Cm3.extend([self.cm,self.cm])
+                self.Energy3.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+                self.Excite3.extend([Ex,Ex])
 
         GUI.toggleRunButtons(state="on")
 
@@ -392,17 +439,58 @@ class Kinematics:
         plt.close('all')
 
     def createENFig(self) -> None:
-        fig,ax = plt.subplots(nrows=1,ncols=1,dpi=150)
-        ax.set_xlabel("CM angle")
-        ax.set_ylabel("Energy (MeV)")
-        ax.set_title(f"Energy for fixed vz = {self.xdim / 2} and random CM")
-        ax.set_facecolor('#ADD8E6')
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color='white', linestyle='-')
-        ax.scatter(x=self.Cm1,y=self.Energy1,s=1)
+        fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8),dpi=100)
+        #plt.subplots_adjust(wspace=0.3, hspace=0.5)
+
+        ax[0,0].set_xlabel("CM angle")
+        ax[0,0].set_ylabel("Energy (MeV)")
+        ax[0,0].set_title(f"vz = {self.xdim / 2}, random CM")
+        ax[0,0].set_facecolor('#ADD8E6')
+        ax[0,0].set_axisbelow(True)
+        ax[0,0].yaxis.grid(color='white', linestyle='-')
+        ax[0,0].scatter(x=self.Cm1,y=self.Energy1,s=0.5)
+
+        ax[0,1].axis('off')
+        ax[0,2].axis('off')
+
+        ax[1,0].set_xlabel("CM angle")
+        ax[1,0].set_ylabel("Energy (MeV)")
+        ax[1,0].set_title(f"Random vz, CM")
+        ax[1,0].set_facecolor('#ADD8E6')
+        ax[1,0].set_axisbelow(True)
+        ax[1,0].yaxis.grid(color='white', linestyle='-')
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy2,s=1)
+
+        ax[1,1].set_xlabel("Vertex")
+        ax[1,1].set_facecolor('#ADD8E6')
+        ax[1,1].set_axisbelow(True)
+        ax[1,1].yaxis.grid(color='white', linestyle='-')
+        ax[1,1].scatter(x=self.vz2,y=self.Energy2,s=0.5,c="orange")
+
+        ax[1,2].axis('off')
+
+        ax[2,0].set_xlabel("CM angle")
+        ax[2,0].set_ylabel("Energy (MeV)")
+        ax[2,0].set_title(f"Random vz, CM, ex")
+        ax[2,0].set_facecolor('#ADD8E6')
+        ax[2,0].set_axisbelow(True)
+        ax[2,0].yaxis.grid(color='white', linestyle='-')
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy3,s=1)
+
+        ax[2,1].set_xlabel("Vertex")
+        ax[2,1].set_facecolor('#ADD8E6')
+        ax[2,1].set_axisbelow(True)
+        ax[2,1].yaxis.grid(color='white', linestyle='-')
+        ax[2,1].scatter(x=self.vz3,y=self.Energy3,s=0.5,c="orange")
+
+        ax[2,2].set_xlabel("Ex")
+        ax[2,2].set_facecolor('#ADD8E6')
+        ax[2,2].set_axisbelow(True)
+        ax[2,2].yaxis.grid(color='white', linestyle='-')
+        ax[2,2].scatter(x=self.Excite3,y=self.Energy3,s=0.5,c="salmon")
 
         plt.tight_layout()
-        plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
+        plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg")
         plt.show()
         plt.cla()
         plt.clf()
