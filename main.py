@@ -351,7 +351,7 @@ class Kinematics:
                 y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
                 self.Cm1.extend([self.cm,self.cm])
-                self.Energy1.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+                self.Energy1.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
 
         self.vz2 = []
         self.Energy2 = []
@@ -372,7 +372,7 @@ class Kinematics:
             if y1 >= self.dead and y2 <= self.threshd:
                 self.vz2.extend([vz,vz])
                 self.Cm2.extend([self.cm,self.cm])
-                self.Energy2.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+                self.Energy2.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
 
         amu = 931.4941024 # MeV/U
         self.vz3 = []
@@ -397,7 +397,7 @@ class Kinematics:
             if y1 >= self.dead and y2 <= self.threshd:
                 self.vz3.extend([vz,vz])
                 self.Cm3.extend([self.cm,self.cm])
-                self.Energy3.extend([self.labEnergy(self.mr,self.me,A1),self.labEnergy(self.me,self.mr,A2)])
+                self.Energy3.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
                 self.Excite3.extend([Ex,Ex])
 
         GUI.toggleRunButtons(state="on")
@@ -439,11 +439,11 @@ class Kinematics:
         plt.close('all')
 
     def createENFig(self) -> None:
-        fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8),dpi=100)
+        fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8),dpi=300)
         #plt.subplots_adjust(wspace=0.3, hspace=0.5)
 
         ax[0,0].set_xlabel("CM angle")
-        ax[0,0].set_ylabel("Energy (MeV)")
+        ax[0,0].set_ylabel("Energy (MeV/U)")
         ax[0,0].set_title(f"vz = {self.xdim / 2}, random CM")
         ax[0,0].set_facecolor('#ADD8E6')
         ax[0,0].set_axisbelow(True)
@@ -454,7 +454,7 @@ class Kinematics:
         ax[0,2].axis('off')
 
         ax[1,0].set_xlabel("CM angle")
-        ax[1,0].set_ylabel("Energy (MeV)")
+        ax[1,0].set_ylabel("Energy (MeV/U)")
         ax[1,0].set_title(f"Random vz, CM")
         ax[1,0].set_facecolor('#ADD8E6')
         ax[1,0].set_axisbelow(True)
@@ -470,7 +470,7 @@ class Kinematics:
         ax[1,2].axis('off')
 
         ax[2,0].set_xlabel("CM angle")
-        ax[2,0].set_ylabel("Energy (MeV)")
+        ax[2,0].set_ylabel("Energy (MeV/U)")
         ax[2,0].set_title(f"Random vz, CM, ex")
         ax[2,0].set_facecolor('#ADD8E6')
         ax[2,0].set_axisbelow(True)
@@ -496,6 +496,22 @@ class Kinematics:
         plt.clf()
         plt.close('all')
 
+        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(10,8),dpi=100)
+        ax.set_xlabel("CM angle")
+        ax.set_ylabel("Energy (MeV/U)")
+        ax.set_title(f"vz = {self.xdim / 2}, random CM")
+        ax.set_facecolor('#ADD8E6')
+        ax.set_axisbelow(True)
+        ax.yaxis.grid(color='white', linestyle='-')
+        ax.scatter(x=self.Cm1,y=self.Energy1,s=0.5)
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(temp_folder,'fig3.jpg'),format="jpg")
+        plt.show()
+        plt.cla()
+        plt.clf()
+        plt.close('all')
+
     def labAngle(self) -> float:
         gam = np.sqrt(self.mp*self.mr/self.mt/self.me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab = np.arctan2(np.sin(self.cm),gam-np.cos(self.cm))
@@ -510,6 +526,7 @@ class Kinematics:
         delta = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         if(np.isnan(delta)):
             print("NaN encountered, Invalid Reaction")
+            return 0
         fir = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
         e1 = (fir + delta) / (me+mr)
         e2 = (fir - delta) / (me+mr)
