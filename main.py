@@ -8,6 +8,7 @@ from sys import path
 import os
 from multiprocessing import Process
 from pandas import read_csv
+from time import time
 
 global sys_path
 sys_path = path[0]
@@ -137,6 +138,8 @@ class Window(Tk):
 
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
+        
+        self.toggleRunButtons("off")
 
     def on_x(self) -> None:
         self.destroy()
@@ -162,7 +165,7 @@ class Window(Tk):
         self.KM.cm = float(self.comangle_entry.get()) * (np.pi / 180) # in rad
         self.KM.nreactions = int(self.nreaction_entry.get()) * 1000
         self.KM.ex = float(self.excitation_entry.get()) # Excitation in MeV
-#        self.KM.defaultVertex = float(self.vertex_entry.get()) # Vertex of Raction for energy sim with fixed vertex
+        #self.KM.defaultVertex = float(self.vertex_entry.get()) # Vertex of Raction for energy sim with fixed vertex
 
         if self.KM.threshd >= self.KM.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
@@ -189,7 +192,11 @@ class Window(Tk):
             self.toggleRunButtons("off")
             return
 
-        self.KM.setKinematics()
+        try:
+            self.KM.setKinematics()
+        except:
+            self.toggleRunButtons("off")
+            return
         
         if self.run_button["state"] == "disabled":
             self.toggleRunButtons("on")
@@ -249,7 +256,9 @@ class Window(Tk):
 class Kinematics:
     def __init__(self):
         self.mexcess = read_csv(os.path.join(resource_path,'mexcess.csv')).to_numpy()
-        pass
+        self.stop = True
+        self.lastTime = time() - 10
+        self.looping = False
 
     def setKinematics(self) -> None:
         '''
@@ -275,13 +284,24 @@ class Kinematics:
         self.me = (self.me*amu + mexe) / amu # convert mass to amu units
         self.Q = (self.mp + self.mt - self.mr - self.me) * amu - self.ex # in MeV
 
-        self.labA1 = self.labAngle()
-        self.labE1 = self.labEnergy(self.mr,self.me,self.labA1)/self.mr
-        self.labA2 = self.labAngle2()
-        self.labE2 = self.labEnergy(self.me,self.mr,self.labA2)/self.me # Swap mr and me for the beam-like
-        print("A1:",self.labA1*180/np.pi,"E1:",self.labE1,"A2:",self.labA2*180/np.pi,"E2:",self.labE2,"Q:",self.Q)
+        try:
+            self.labA1 = self.labAngle()
+            self.labE1 = self.labEnergy(self.mr,self.me,self.labA1)/self.mr
+            self.labA2 = self.labAngle2()
+            self.labE2 = self.labEnergy(self.me,self.mr,self.labA2)/self.me # Swap mr and me for the beam-like
+            print("A1:",self.labA1*180/np.pi,"E1:",self.labE1,"A2:",self.labA2*180/np.pi,"E2:",self.labE2,"Q:",self.Q)
+            self.stop = False
+        except:
+            GUI.toggleRunButtons("off")
+            self.stop = True
+            raise Exception
+
+        return
 
     def determineDetected(self) -> None:
+        if self.stop:
+            return
+        
         self.detectedVert = []
         for _ in range(self.nreactions):
             vz = np.random.uniform(0.01,self.xdim-0.01)
@@ -334,13 +354,23 @@ class Kinematics:
         p.start()
 
     def determineEnergy(self) -> None:
+        if self.stop:
+            return
+        
+        self.looping = True
+        
         vz = self.xdim / 2
         self.Energy1 = []
         self.Cm1 = []
-        for _ in range(self.nreactions):
-            self.cm = np.random.uniform(0,np.pi)
-            A1 = self.labAngle()
-            A2 = self.labAngle2()
+        while len(self.Cm1) < 2*self.nreactions:
+            try:
+                self.cm = np.random.uniform(0,np.pi)
+                A1 = self.labAngle()
+                A2 = self.labAngle2()
+                Er = self.labEnergy(self.mr,self.me,A1)/self.mr
+                Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+            except:
+                continue
             if A1 < np.pi/2:
                 y1 = (self.xdim-vz)*np.tan(A1)
             else:
@@ -351,16 +381,21 @@ class Kinematics:
                 y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
                 self.Cm1.extend([self.cm,self.cm])
-                self.Energy1.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
+                self.Energy1.extend([Er,Ee])
 
         self.vz2 = []
         self.Energy2 = []
         self.Cm2 = []
-        for _ in range(self.nreactions):
-            self.cm = np.random.uniform(0,np.pi)
-            vz = np.random.uniform(0,self.xdim)
-            A1 = self.labAngle()
-            A2 = self.labAngle2()
+        while len(self.Cm2) < 2*self.nreactions:
+            try:
+                self.cm = np.random.uniform(0,np.pi)
+                vz = np.random.uniform(0,self.xdim)
+                A1 = self.labAngle()
+                A2 = self.labAngle2()
+                Er = self.labEnergy(self.mr,self.me,A1)/self.mr
+                Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+            except:
+                continue
             if A1 < np.pi/2:
                 y1 = (self.xdim-vz)*np.tan(A1)
             else:
@@ -372,20 +407,25 @@ class Kinematics:
             if y1 >= self.dead and y2 <= self.threshd:
                 self.vz2.extend([vz,vz])
                 self.Cm2.extend([self.cm,self.cm])
-                self.Energy2.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
+                self.Energy2.extend([Er,Ee])
 
         amu = 931.4941024 # MeV/U
         self.vz3 = []
         self.Cm3 = []
         self.Energy3 = []
         self.Excite3 = []
-        for _ in range(self.nreactions):
-            self.cm = np.random.uniform(0,np.pi)
-            vz = np.random.uniform(0,self.xdim)
-            Ex = np.random.uniform(0,9)
-            self.Q = (self.mp + self.mt - self.mr - self.me) * amu - Ex
-            A1 = self.labAngle()
-            A2 = self.labAngle2()
+        while len(self.Cm3) < 2*self.nreactions:
+            try:
+                self.cm = np.random.uniform(0,np.pi)
+                vz = np.random.uniform(0,self.xdim)
+                Ex = np.random.uniform(0,9)
+                self.Q = (self.mp + self.mt - self.mr - self.me) * amu - Ex
+                A1 = self.labAngle()
+                A2 = self.labAngle2()
+                Er = self.labEnergy(self.mr,self.me,A1)/self.mr
+                Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+            except:
+                continue
             if A1 < np.pi/2:
                 y1 = (self.xdim-vz)*np.tan(A1)
             else:
@@ -397,9 +437,10 @@ class Kinematics:
             if y1 >= self.dead and y2 <= self.threshd:
                 self.vz3.extend([vz,vz])
                 self.Cm3.extend([self.cm,self.cm])
-                self.Energy3.extend([self.labEnergy(self.mr,self.me,A1)/self.mr,self.labEnergy(self.me,self.mr,A2)/self.me])
+                self.Energy3.extend([Er,Ee])
                 self.Excite3.extend([Ex,Ex])
 
+        self.looping = False
         GUI.toggleRunButtons(state="on")
 
         p = Process(target=self.createENFig)
@@ -439,7 +480,7 @@ class Kinematics:
         plt.close('all')
 
     def createENFig(self) -> None:
-        fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8),dpi=300)
+        fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8))
         #plt.subplots_adjust(wspace=0.3, hspace=0.5)
 
         ax[0,0].set_xlabel("CM angle")
@@ -459,7 +500,7 @@ class Kinematics:
         ax[1,0].set_facecolor('#ADD8E6')
         ax[1,0].set_axisbelow(True)
         ax[1,0].yaxis.grid(color='white', linestyle='-')
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy2,s=1)
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy2,s=0.5)
 
         ax[1,1].set_xlabel("Vertex")
         ax[1,1].set_facecolor('#ADD8E6')
@@ -475,7 +516,7 @@ class Kinematics:
         ax[2,0].set_facecolor('#ADD8E6')
         ax[2,0].set_axisbelow(True)
         ax[2,0].yaxis.grid(color='white', linestyle='-')
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy3,s=1)
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy3,s=0.5)
 
         ax[2,1].set_xlabel("Vertex")
         ax[2,1].set_facecolor('#ADD8E6')
@@ -490,28 +531,12 @@ class Kinematics:
         ax[2,2].scatter(x=self.Excite3,y=self.Energy3,s=0.5,c="salmon")
 
         plt.tight_layout()
-        plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg")
+        plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg",dpi=300)
         plt.show()
         plt.cla()
         plt.clf()
         plt.close('all')
-
-        fig,ax = plt.subplots(nrows=1,ncols=1,figsize=(10,8),dpi=100)
-        ax.set_xlabel("CM angle")
-        ax.set_ylabel("Energy (MeV/U)")
-        ax.set_title(f"vz = {self.xdim / 2}, random CM")
-        ax.set_facecolor('#ADD8E6')
-        ax.set_axisbelow(True)
-        ax.yaxis.grid(color='white', linestyle='-')
-        ax.scatter(x=self.Cm1,y=self.Energy1,s=0.5)
-
-        plt.tight_layout()
-        plt.savefig(os.path.join(temp_folder,'fig3.jpg'),format="jpg")
-        plt.show()
-        plt.cla()
-        plt.clf()
-        plt.close('all')
-
+        
     def labAngle(self) -> float:
         gam = np.sqrt(self.mp*self.mr/self.mt/self.me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab = np.arctan2(np.sin(self.cm),gam-np.cos(self.cm))
@@ -525,8 +550,10 @@ class Kinematics:
     def labEnergy(self,mr,me,th) -> float:
         delta = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         if(np.isnan(delta)):
-            print("NaN encountered, Invalid Reaction")
-            return 0
+            if(time()-self.lastTime >= 5 and not self.looping):
+                self.lastTime = time()
+                print("NaN encountered, Invalid Reaction")
+            raise Exception
         fir = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
         e1 = (fir + delta) / (me+mr)
         e2 = (fir - delta) / (me+mr)
