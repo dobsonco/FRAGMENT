@@ -212,7 +212,7 @@ class Window(Tk):
         t.start()
 
     def errMessage(self, errtype: str, message: str) -> None:
-        messagebox.showwarning(title=errtype,message=message)
+        messagebox.showerror(title=errtype,message=message)
 
     def toggleRunButtons(self,state) -> None:
         """
@@ -272,7 +272,7 @@ class Kinematics:
             mexr = self.mexcess[self.zr, self.mr-self.zr]
             mexe = self.mexcess[self.ze, self.me-self.ze]
         except:
-            GUI.errMessage("Missing Mass Excess","Missing mass excess for selected nuclei, proceeding without exact numbers")
+            GUI.errMessage("Missing Mexcess","Missing mass excess for selected nuclei, proceeding without exact numbers")
             mexp=0
             mext=0
             mexr=0
