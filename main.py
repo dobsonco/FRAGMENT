@@ -8,7 +8,6 @@ from sys import path
 import os
 from multiprocessing import Process
 from pandas import read_csv
-from time import time
 
 global sys_path
 sys_path = path[0]
@@ -257,7 +256,6 @@ class Kinematics:
     def __init__(self):
         self.mexcess = read_csv(os.path.join(resource_path,'mexcess.csv')).to_numpy()
         self.stop = True
-        self.lastTime = time() - 10
         self.looping = False
 
     def setKinematics(self) -> None:
@@ -550,8 +548,7 @@ class Kinematics:
     def labEnergy(self,mr,me,th) -> float:
         delta = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         if(np.isnan(delta)):
-            if(time()-self.lastTime >= 5 and not self.looping):
-                self.lastTime = time()
+            if(not self.looping):
                 print("NaN encountered, Invalid Reaction")
             raise Exception
         fir = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
