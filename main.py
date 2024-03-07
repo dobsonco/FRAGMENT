@@ -74,18 +74,13 @@ class Window(Tk):
 
         self.nreaction_label = Label(self.reaction_frame, text = "# Reactions (thousands)")
         self.nreaction_label.grid(row=0,column=2)
-        self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
+        self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
         self.nreaction_entry.grid(row=1,column=2)
 
         self.excitation_label = Label(self.reaction_frame, text = "Excitation (MeV)")
         self.excitation_label.grid(row=2,column=0)
         self.excitation_entry = Entry(self.reaction_frame,textvariable=DoubleVar(value=0))
         self.excitation_entry.grid(row=3,column=0)
-
-        # self.vertex_label = Label(self.reaction_frame, text = "Vertex of Reaction (cm)")
-        # self.vertex_label.grid(row=2,column=1)
-        # self.vertex_entry = Entry(self.reaction_frame,textvariable=DoubleVar(value=50))
-        # self.vertex_entry.grid(row=3,column=1)
 
         for widget in self.reaction_frame.winfo_children():
            widget.grid_configure(padx=5,pady=5)
@@ -226,7 +221,7 @@ class Window(Tk):
             self.runEN_button["state"] = "active"
         
     def infoWin(self) -> None:
-        def delete_monitor(self: GUI) -> None:
+        def delete_monitor(self: Window) -> None:
             self.infoWindow.destroy()
             self.info_button['state'] = 'active'
 
@@ -358,7 +353,8 @@ class Kinematics:
         self.looping = True
         
         vz = self.xdim / 2
-        self.Energy1 = []
+        self.Energy11 = []
+        self.Energy12 = []
         self.Cm1 = []
         while len(self.Cm1) < 2*self.nreactions:
             try:
@@ -378,11 +374,13 @@ class Kinematics:
             else:
                 y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
-                self.Cm1.extend([self.cm,self.cm])
-                self.Energy1.extend([Er,Ee])
+                self.Cm1.append(self.cm)
+                self.Energy11.append(Er)
+                self.Energy12.append(Ee)
 
         self.vz2 = []
-        self.Energy2 = []
+        self.Energy21 = []
+        self.Energy22 = []
         self.Cm2 = []
         while len(self.Cm2) < 2*self.nreactions:
             try:
@@ -403,14 +401,16 @@ class Kinematics:
             else:
                 y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
-                self.vz2.extend([vz,vz])
-                self.Cm2.extend([self.cm,self.cm])
-                self.Energy2.extend([Er,Ee])
+                self.vz2.append(vz)
+                self.Cm2.append(self.cm)
+                self.Energy21.append(Er)
+                self.Energy22.append(Ee)
 
         amu = 931.4941024 # MeV/U
         self.vz3 = []
         self.Cm3 = []
-        self.Energy3 = []
+        self.Energy31 = []
+        self.Energy32 = []
         self.Excite3 = []
         while len(self.Cm3) < 2*self.nreactions:
             try:
@@ -433,10 +433,11 @@ class Kinematics:
             else:
                 y2 = vz*np.tan(A2)
             if y1 >= self.dead and y2 <= self.threshd:
-                self.vz3.extend([vz,vz])
-                self.Cm3.extend([self.cm,self.cm])
-                self.Energy3.extend([Er,Ee])
-                self.Excite3.extend([Ex,Ex])
+                self.vz3.append(vz)
+                self.Cm3.append(self.cm)
+                self.Energy31.append(Er)
+                self.Energy32.append(Ee)
+                self.Excite3.append(Ex)
 
         self.looping = False
         GUI.toggleRunButtons(state="on")
@@ -479,7 +480,6 @@ class Kinematics:
 
     def createENFig(self) -> None:
         fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8))
-        #plt.subplots_adjust(wspace=0.3, hspace=0.5)
 
         ax[0,0].set_xlabel("CM angle")
         ax[0,0].set_ylabel("Energy (MeV/U)")
@@ -487,7 +487,9 @@ class Kinematics:
         ax[0,0].set_facecolor('#ADD8E6')
         ax[0,0].set_axisbelow(True)
         ax[0,0].yaxis.grid(color='white', linestyle='-')
-        ax[0,0].scatter(x=self.Cm1,y=self.Energy1,s=0.5)
+        ax[0,0].scatter(x=self.Cm1,y=self.Energy11,s=2,label="Er")
+        ax[0,0].scatter(x=self.Cm1,y=self.Energy12,s=2,label="Ee")
+        ax[0,0].legend()
 
         ax[0,1].axis('off')
         ax[0,2].axis('off')
@@ -498,13 +500,16 @@ class Kinematics:
         ax[1,0].set_facecolor('#ADD8E6')
         ax[1,0].set_axisbelow(True)
         ax[1,0].yaxis.grid(color='white', linestyle='-')
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy2,s=0.5)
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy21,s=2)
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy22,s=2)
 
         ax[1,1].set_xlabel("Vertex")
         ax[1,1].set_facecolor('#ADD8E6')
         ax[1,1].set_axisbelow(True)
         ax[1,1].yaxis.grid(color='white', linestyle='-')
-        ax[1,1].scatter(x=self.vz2,y=self.Energy2,s=0.5,c="orange")
+        ax[1,1].scatter(x=self.vz2,y=self.Energy21,s=2,c="#FC776AFF",label="Er")
+        ax[1,1].scatter(x=self.vz2,y=self.Energy22,s=2,c="#5B84B1FF",label="Ee")
+        ax[1,1].legend()
 
         ax[1,2].axis('off')
 
@@ -514,19 +519,23 @@ class Kinematics:
         ax[2,0].set_facecolor('#ADD8E6')
         ax[2,0].set_axisbelow(True)
         ax[2,0].yaxis.grid(color='white', linestyle='-')
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy3,s=0.5)
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy31,s=2)
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy32,s=2)
 
         ax[2,1].set_xlabel("Vertex")
         ax[2,1].set_facecolor('#ADD8E6')
         ax[2,1].set_axisbelow(True)
         ax[2,1].yaxis.grid(color='white', linestyle='-')
-        ax[2,1].scatter(x=self.vz3,y=self.Energy3,s=0.5,c="orange")
+        ax[2,1].scatter(x=self.vz3,y=self.Energy31,s=2,c="#FC776AFF")
+        ax[2,1].scatter(x=self.vz3,y=self.Energy32,s=2,c="#5B84B1FF")
 
         ax[2,2].set_xlabel("Ex")
         ax[2,2].set_facecolor('#ADD8E6')
         ax[2,2].set_axisbelow(True)
         ax[2,2].yaxis.grid(color='white', linestyle='-')
-        ax[2,2].scatter(x=self.Excite3,y=self.Energy3,s=0.5,c="salmon")
+        ax[2,2].scatter(x=self.Excite3,y=self.Energy31,s=2,c="#5F4B8BFF",label="Er")
+        ax[2,2].scatter(x=self.Excite3,y=self.Energy32,s=2,c="#E69A8DFF",label="Ee")
+        ax[2,2].legend()
 
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig2.jpg'),format="jpg",dpi=300)
