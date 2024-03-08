@@ -356,7 +356,8 @@ class Kinematics:
         self.Energy11 = []
         self.Energy12 = []
         self.Cm1 = []
-        while len(self.Cm1) < 2*self.nreactions:
+
+        while len(self.Cm1) < self.nreactions:
             try:
                 self.cm = np.random.uniform(0,np.pi)
                 A1 = self.labAngle()
@@ -382,7 +383,7 @@ class Kinematics:
         self.Energy21 = []
         self.Energy22 = []
         self.Cm2 = []
-        while len(self.Cm2) < 2*self.nreactions:
+        while len(self.Cm2) < self.nreactions:
             try:
                 self.cm = np.random.uniform(0,np.pi)
                 vz = np.random.uniform(0,self.xdim)
@@ -412,7 +413,7 @@ class Kinematics:
         self.Energy31 = []
         self.Energy32 = []
         self.Excite3 = []
-        while len(self.Cm3) < 2*self.nreactions:
+        while len(self.Cm3) < self.nreactions:
             try:
                 self.cm = np.random.uniform(0,np.pi)
                 vz = np.random.uniform(0,self.xdim)
@@ -479,6 +480,7 @@ class Kinematics:
         plt.close('all')
 
     def createENFig(self) -> None:
+        size = 4*(1.05 - (1-np.exp(-2E-4 * self.nreactions)))
         fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8))
 
         ax[0,0].set_xlabel("CM angle")
@@ -487,8 +489,12 @@ class Kinematics:
         ax[0,0].set_facecolor('#ADD8E6')
         ax[0,0].set_axisbelow(True)
         ax[0,0].yaxis.grid(color='white', linestyle='-')
-        ax[0,0].scatter(x=self.Cm1,y=self.Energy11,s=2,label="Er")
-        ax[0,0].scatter(x=self.Cm1,y=self.Energy12,s=2,label="Ee")
+        ax[0,0].scatter(x=self.Cm1,y=self.Energy11,s=size,c="#ff7f0e")
+        ax[0,0].scatter(x=self.Cm1,y=self.Energy12,s=size,c="#1f77b4")
+        ax[0,0].scatter(x=-10,y=-10,s=10,c="#ff7f0e",label="Er")
+        ax[0,0].scatter(x=-10,y=-10,s=10,c="#1f77b4",label="Ee")
+        ax[0,0].set_xlim(-0.1,max(self.Cm1)+0.1)
+        ax[0,0].set_ylim(-2)
         ax[0,0].legend()
 
         ax[0,1].axis('off')
@@ -500,15 +506,19 @@ class Kinematics:
         ax[1,0].set_facecolor('#ADD8E6')
         ax[1,0].set_axisbelow(True)
         ax[1,0].yaxis.grid(color='white', linestyle='-')
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy21,s=2)
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy22,s=2)
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy21,s=size,c="#ff7f0e")
+        ax[1,0].scatter(x=self.Cm2,y=self.Energy22,s=size,c="#1f77b4")
 
         ax[1,1].set_xlabel("Vertex")
         ax[1,1].set_facecolor('#ADD8E6')
         ax[1,1].set_axisbelow(True)
         ax[1,1].yaxis.grid(color='white', linestyle='-')
-        ax[1,1].scatter(x=self.vz2,y=self.Energy21,s=2,c="#FC776AFF",label="Er")
-        ax[1,1].scatter(x=self.vz2,y=self.Energy22,s=2,c="#5B84B1FF",label="Ee")
+        ax[1,1].scatter(x=self.vz2,y=self.Energy21,s=size,c="#FC776AFF")
+        ax[1,1].scatter(x=self.vz2,y=self.Energy22,s=size,c="#5B84B1FF")
+        ax[1,1].scatter(x=-10,y=-10,s=10,c="#FC776AFF",label="Er")
+        ax[1,1].scatter(x=-10,y=-10,s=10,c="#5B84B1FF",label="Ee")
+        ax[1,1].set_xlim(-2,max(self.vz2)+2)
+        ax[1,1].set_ylim(-2)
         ax[1,1].legend()
 
         ax[1,2].axis('off')
@@ -519,22 +529,26 @@ class Kinematics:
         ax[2,0].set_facecolor('#ADD8E6')
         ax[2,0].set_axisbelow(True)
         ax[2,0].yaxis.grid(color='white', linestyle='-')
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy31,s=2)
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy32,s=2)
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy31,s=size,c="#ff7f0e")
+        ax[2,0].scatter(x=self.Cm3,y=self.Energy32,s=size,c="#1f77b4")
 
         ax[2,1].set_xlabel("Vertex")
         ax[2,1].set_facecolor('#ADD8E6')
         ax[2,1].set_axisbelow(True)
         ax[2,1].yaxis.grid(color='white', linestyle='-')
-        ax[2,1].scatter(x=self.vz3,y=self.Energy31,s=2,c="#FC776AFF")
-        ax[2,1].scatter(x=self.vz3,y=self.Energy32,s=2,c="#5B84B1FF")
+        ax[2,1].scatter(x=self.vz3,y=self.Energy31,s=size,c="#FC776AFF")
+        ax[2,1].scatter(x=self.vz3,y=self.Energy32,s=size,c="#5B84B1FF")
 
         ax[2,2].set_xlabel("Ex")
         ax[2,2].set_facecolor('#ADD8E6')
         ax[2,2].set_axisbelow(True)
         ax[2,2].yaxis.grid(color='white', linestyle='-')
-        ax[2,2].scatter(x=self.Excite3,y=self.Energy31,s=2,c="#5F4B8BFF",label="Er")
-        ax[2,2].scatter(x=self.Excite3,y=self.Energy32,s=2,c="#E69A8DFF",label="Ee")
+        ax[2,2].scatter(x=self.Excite3,y=self.Energy31,s=size,c="#5F4B8BFF")
+        ax[2,2].scatter(x=self.Excite3,y=self.Energy32,s=size,c="#E69A8DFF")
+        ax[2,2].scatter(x=-10,y=-10,s=10,c="#5F4B8BFF",label="Er")
+        ax[2,2].scatter(x=-10,y=-10,s=10,c="#E69A8DFF",label="Ee")
+        ax[2,2].set_xlim(-0.2,max(self.Excite3)+0.2)
+        ax[2,2].set_ylim(-1)
         ax[2,2].legend()
 
         plt.tight_layout()
