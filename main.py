@@ -7,7 +7,7 @@ from PIL import ImageTk
 from sys import path
 import os
 from multiprocessing import Process
-from pandas import read_csv
+from pandas import read_csv, DataFrame
 
 global sys_path
 sys_path = path[0]
@@ -197,11 +197,13 @@ class Window(Tk):
 
     def run(self) -> None:
         self.toggleRunButtons("off")
+        self.read_input()
         t = Thread(self.KM.determineDetected())
         t.start()
 
     def runEN(self) -> None:
         self.toggleRunButtons("off")
+        self.read_input()
         t = Thread(self.KM.determineEnergy())
         t.start()
 
@@ -295,7 +297,7 @@ class Kinematics:
         if self.stop:
             return
         
-        self.detectedVert = []
+        self.vz1 = []
         for _ in range(self.nreactions):
             vz = np.random.uniform(0.01,self.xdim-0.01)
             if self.labA1 < np.pi/2:
@@ -310,14 +312,19 @@ class Kinematics:
             # target-like Y > Deadzone (which means coming out of the dead zone)
             # AND beam-like Y < Threshold (which means entering in the zero degree detector)
             if y1 >= self.dead and y2 <= self.threshd:
-                self.detectedVert.append(vz)
+                self.vz1.append(vz)
 
-        if len(self.detectedVert) <= 0:
+        if len(self.vz1) <= 0:
             GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
             return
         
-        self.detection2 = []
-        self.detection3 = []
+        export_df = DataFrame({"vz":self.vz1,
+                               "cm":np.ones(len(self.vz1))*self.cm,
+                               "ex":np.zeros(len(self.vz1))})
+        export_df.to_csv(os.path.join(temp_folder,"Simple_Sim_randomvz.csv"),index=False)
+        
+        self.Cm2 = []
+        self.vz2 = []
         for _ in range(self.nreactions):
             cm = np.random.uniform(0,np.pi)
             vz = np.random.uniform(0,self.xdim)
@@ -335,11 +342,16 @@ class Kinematics:
             # target-like Y > Deadzone (which means coming out of the dead zone)
             # AND beam-like Y < Threshold (which means entering in the zero degree detector)
             if y1 >= self.dead and y2 <= self.threshd:
-                self.detection2.append(cm*180/np.pi)
-                self.detection3.append(vz)
+                self.Cm2.append(cm)
+                self.vz2.append(vz)
 
-        if len(self.detection2) <= 0:
+        if len(self.vz2) <= 0:
             GUI.errMessage(ValueError,"No particles detected")
+
+        export_df = DataFrame({"vz":self.vz2,
+                               "cm":self.Cm2,
+                               "ex":np.zeros(len(self.vz2))})
+        export_df.to_csv(os.path.join(temp_folder,"Simple_Sim_random_CMvz.csv"),index=False)
 
         GUI.toggleRunButtons(state="on")
 
@@ -351,6 +363,7 @@ class Kinematics:
             return
         
         self.looping = True
+        amu = 931.4941024 # MeV/U
         
         vz = self.xdim / 2
         self.Energy11 = []
@@ -378,6 +391,13 @@ class Kinematics:
                 self.Cm1.append(self.cm)
                 self.Energy11.append(Er)
                 self.Energy12.append(Ee)
+        
+        export_df = DataFrame({"vz":np.ones(self.nreactions)*vz,
+                               "cm":self.Cm1,
+                               "er":self.Energy11,
+                               "ee":self.Energy12,
+                               "ex":np.zeros(self.nreactions)})
+        export_df.to_csv(os.path.join(temp_folder,"EN_fixedvz_0ex.csv"),index=False)
 
         self.vz2 = []
         self.Energy21 = []
@@ -407,7 +427,13 @@ class Kinematics:
                 self.Energy21.append(Er)
                 self.Energy22.append(Ee)
 
-        amu = 931.4941024 # MeV/U
+        export_df = DataFrame({"vz":self.vz2,
+                               "cm":self.Cm2,
+                               "er":self.Energy21,
+                               "ee":self.Energy22,
+                               "ex":np.zeros(self.nreactions)})
+        export_df.to_csv(os.path.join(temp_folder,"EN_0ex.csv"),index=False)
+
         self.vz3 = []
         self.Cm3 = []
         self.Energy31 = []
@@ -440,6 +466,13 @@ class Kinematics:
                 self.Energy32.append(Ee)
                 self.Excite3.append(Ex)
 
+        export_df = DataFrame({"vz":self.vz3,
+                               "cm":self.Cm3,
+                               "er":self.Energy31,
+                               "ee":self.Energy32,
+                               "ex":self.Excite3})
+        export_df.to_csv(os.path.join(temp_folder,"EN_randomex.csv"),index=False)
+
         self.looping = False
         GUI.toggleRunButtons(state="on")
 
@@ -454,7 +487,7 @@ class Kinematics:
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
-        ax[0].hist(self.detectedVert,bins=100,range=(0,self.xdim))
+        ax[0].hist(self.vz1,bins=100,range=(0,self.xdim))
 
         ax[1].set_xlabel("CM Angle (deg)")
         ax[1].set_ylabel("Counts")
@@ -462,7 +495,7 @@ class Kinematics:
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
-        ax[1].hist(self.detection2,bins=180,range=(0,180))
+        ax[1].hist(self.Cm2,bins=180,range=(0,np.pi))
 
         ax[2].set_xlabel("Vertex")
         ax[2].set_ylabel("Counts")
@@ -470,7 +503,7 @@ class Kinematics:
         ax[2].set_facecolor('#ADD8E6')
         ax[2].set_axisbelow(True)
         ax[2].yaxis.grid(color='white', linestyle='-')
-        ax[2].hist(self.detection3,bins=100,range=(0,self.xdim))
+        ax[2].hist(self.vz1,bins=100,range=(0,self.xdim))
 
         plt.tight_layout()
         plt.savefig(os.path.join(temp_folder,'fig1.jpg'),format="jpg")
