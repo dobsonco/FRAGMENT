@@ -154,7 +154,7 @@ class Kinematics:
                 self.Energy11.append(Er)
                 self.Energy12.append(Ee)
         
-        export_df = DataFrame({"vz":np.ones(len(self.Energy11))*vz,
+        export_df = DataFrame({"vz":np.ones_like(self.Energy11)*vz,
                                "cm":self.Cm1,
                                "er":self.Energy11,
                                "ee":self.Energy12,
