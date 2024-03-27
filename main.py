@@ -489,7 +489,7 @@ class Kinematics:
         ax[0].yaxis.grid(color='white', linestyle='-')
         ax[0].hist(self.vz1,bins=100,range=(0,self.xdim))
 
-        ax[1].set_xlabel("CM Angle (deg)")
+        ax[1].set_xlabel("CM Angle (rad)")
         ax[1].set_ylabel("Counts")
         ax[1].set_title(f"Number of detections with random cm and vz")
         ax[1].set_facecolor('#ADD8E6')
