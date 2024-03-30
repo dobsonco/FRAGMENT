@@ -140,7 +140,7 @@ class Window(Tk):
         self.KM.ze = self.KM.zp + self.KM.zt - self.KM.zr # Conservation of Z
         self.KM.me = self.KM.mp + self.KM.mt - self.KM.mr # Conservation of A
         #self.KM.er = 0
-        self.KM.cm = float(self.comangle_entry.get()) * (np.pi / 180) # in rad
+        self.KM.simple_cm = float(self.comangle_entry.get()) * (np.pi / 180) # in rad
         self.KM.nreactions = int(self.nreaction_entry.get()) * 1000
         self.KM.ex = float(self.excitation_entry.get()) # Excitation in MeV
         #self.KM.defaultVertex = float(self.vertex_entry.get()) # Vertex of Raction for energy sim with fixed vertex
