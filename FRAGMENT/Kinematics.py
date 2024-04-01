@@ -45,7 +45,7 @@ class Kinematics:
             mexr = self.mexcess[self.zr, self.mr-self.zr]
             mexe = self.mexcess[self.ze, self.me-self.ze]
         except:
-            # GUI.errMessage("Missing Mexcess","Missing mass excess for selected nuclei, proceeding without exact numbers")
+            print("Missing mass excess for selected nuclei, proceeding without exact numbers")
             mexp=0
             mext=0
             mexr=0
@@ -75,7 +75,6 @@ class Kinematics:
             self.labE2 = self.labEnergy(self.me,self.mr,self.labA2)/self.me # Swap mr and me for the beam-like
     
         except:
-            # GUI.toggleRunButtons("off")
             print("error")
             self.stop = True
             raise Exception
@@ -99,8 +98,6 @@ class Kinematics:
 
         if len(self.vz1) <= 0:
             raise Exception
-            # GUI.errMessage("Invalid Reaction","Something went wrong, check reaction info")
-            return
         
         export_df = DataFrame({"vz":self.vz1,
                                "cm":np.ones(len(self.vz1))*self.cm,
@@ -131,7 +128,6 @@ class Kinematics:
 
         if len(self.vz2) <= 0:
             raise Exception
-            # GUI.errMessage(ValueError,"No particles detected")
 
         export_df = DataFrame({"vz":self.vz2,
                                "cm":self.Cm2,
