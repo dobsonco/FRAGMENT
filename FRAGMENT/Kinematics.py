@@ -62,6 +62,7 @@ class Kinematics:
 
         return
 
+    @jit(forceobj=True,looplift=True)
     def determineDetected(self) -> None:
         if self.stop:
             return 
@@ -187,13 +188,13 @@ class Kinematics:
         Er = Er[NOTNA]
         Ee = Ee[NOTNA]
 
-        LT = np.where(A1 < np.pi/2)[0]
+        LT = A1 < np.pi/2
         GT = ~LT
         y1 = np.zeros_like(A1)
         y1[LT] = np.tan(A1[LT]) * (self.xdim-vz)
         y1[GT] = np.tan(A1[GT]) * vz
 
-        LT = np.where(A2 < np.pi/2)[0]
+        LT = A2 < np.pi/2
         GT = ~LT
         y2 = np.zeros_like(A2)
         y2[LT] = np.tan(A2[LT]) * (self.xdim-vz)
@@ -223,13 +224,13 @@ class Kinematics:
         Er = Er[NOTNA]
         Ee = Ee[NOTNA]
 
-        LT = np.where(A1 < np.pi/2)[0]
+        LT = A1 < np.pi/2
         GT = ~LT
         y1 = np.zeros_like(A1)
         y1[LT] = np.tan(A1[LT]) * (self.xdim-self.vz2[LT])
         y1[GT] = np.tan(A1[GT]) * self.vz2[GT]
 
-        LT = np.where(A2 < np.pi/2)[0]
+        LT = A2 < np.pi/2
         GT = ~LT
         y2 = np.zeros_like(A2)
         y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz2[LT])
@@ -249,7 +250,7 @@ class Kinematics:
 
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
         self.vz3 = np.random.uniform(0,self.xdim,size=self.nreactions)
-        Ex = np.random.uniform(0,10,size=self.nreactions)
+        Ex = np.random.uniform(-10,10,size=self.nreactions)
         self.Q = (self.mp + self.mt - self.mr - self.me) * amu - Ex
         A1 = self.labAngle()
         A2 = self.labAngle2()
@@ -266,13 +267,13 @@ class Kinematics:
         Er = Er[NOTNA]
         Ee = Ee[NOTNA]
 
-        LT = np.where(A1 < np.pi/2)[0]
+        LT = A1 < np.pi/2
         GT = ~LT
         y1 = np.zeros_like(A1)
         y1[LT] = (self.xdim-self.vz3[LT]) * np.tan(A1[LT])
         y1[GT] = self.vz3[GT] * np.tan(A1[GT]) 
 
-        LT = np.where(A2 < np.pi/2)[0]
+        LT = A2 < np.pi/2
         GT = ~LT
         y2 = np.zeros_like(A2)
         y2[LT] = (self.xdim-self.vz3[LT]) * np.tan(A2[LT])
@@ -423,7 +424,7 @@ class Kinematics:
         arg: np.ndarray = np.sin(self.cm)/(gam-np.cos(self.cm))
         der: np.ndarray = 1/(1+arg**2)*(gam*np.cos(self.cm)-1)/(gam-np.cos(self.cm))**2
 
-        m = np.logical_or(der<0,np.isnan(der))
+        m: np.ndarray = der < 0
         e2[m] = e1[m]
 
         return e2
