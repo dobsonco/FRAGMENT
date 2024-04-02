@@ -4,6 +4,7 @@ import numpy as np
 from threading import Thread
 from PIL import ImageTk
 import os
+from json import load
 from .Kinematics import Kinematics
 
 class Window(Tk):
@@ -63,7 +64,7 @@ class Window(Tk):
 
         self.nreaction_label = Label(self.reaction_frame, text = "# Reactions (thousands)")
         self.nreaction_label.grid(row=0,column=2)
-        self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=1))
+        self.nreaction_entry = Entry(self.reaction_frame,textvariable=IntVar(value=10))
         self.nreaction_entry.grid(row=1,column=2)
 
         self.excitation_label = Label(self.reaction_frame, text = "Excitation (MeV)")
@@ -119,20 +120,98 @@ class Window(Tk):
         self.info_button = Button(self.button_frame,text="Info",command=self.infoWin)
         self.info_button.grid(row=0,column=2)
 
+        self.import_button = Button(self.button_frame,text="Import Config",command=self.readConfig)
+        self.import_button.grid(row=0,column=3)
+
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
 
+    def readConfig(self) -> None:
+        with open("config.json") as json_file:
+            params = load(json_file)
+
+        # try:
+        #     workspace_params = params["Workspace"]
+        #     self.KM.temp_folder = workspace_params["solutions_path"]
+        #     self.KM.sys_path = workspace_params["workspace_path"]
+        # except:
+        #     print(f"Unable to read file locations, proceeding with default: {self.KM.resource_path}")
+
+        try:
+            isotope_params = params["Isotope Info"]
+
+            self.zbeam_entry.delete(0,END)
+            self.zbeam_entry.insert(0,isotope_params["zbeam_entry"])
+
+            self.mbeam_entry.delete(0,END)
+            self.mbeam_entry.insert(0,isotope_params["mbeam_entry"])
+                        
+            self.ztarget_entry.delete(0,END)
+            self.ztarget_entry.insert(0,isotope_params["ztarget_entry"])
+
+            self.mtarget_entry.delete(0,END)
+            self.mtarget_entry.insert(0,isotope_params["mtarget_entry"])
+
+            self.ztargetlike_entry.delete(0,END)
+            self.ztargetlike_entry.insert(0,isotope_params["ztargetlike_entry"])
+
+            self.mtargetlike_entry.delete(0,END)
+            self.mtargetlike_entry.insert(0,isotope_params["mtargetlike_entry"])
+        except:
+            print("Failed to load isotope info")
+            return
+        
+        try:
+            reaction_params = params["Reaction Info"]
+
+            self.beamke_entry.delete(0,END)
+            self.beamke_entry.insert(0,reaction_params["beamke_entry"])
+
+            self.comangle_entry.delete(0,END)
+            self.comangle_entry.insert(0,reaction_params["comangle_entry"])
+
+            self.nreaction_entry.delete(0,END)
+            self.nreaction_entry.insert(0,reaction_params["nreaction_entry"])
+
+            self.excitation_entry.delete(0,END)
+            self.excitation_entry.insert(0,reaction_params["excitation_entry"])
+        except:
+            print("Failed to load Reaction Info")
+            return
+
+        try:
+            dim_params = params["Dimension of Detector"]
+
+            self.x_dim_entry.delete(0,END)
+            self.x_dim_entry.insert(0,dim_params["x_dim_entry"])
+
+            self.y_dim_entry.delete(0,END)
+            self.y_dim_entry.insert(0,dim_params["y_dim_entry"])
+
+            self.deadzone_entry.delete(0,END)
+            self.deadzone_entry.insert(0,dim_params["deadzone_entry"])
+
+            self.threshold_entry.delete(0,END)
+            self.threshold_entry.insert(0,dim_params["threshold_entry"])
+        except:
+            print("Failed to load dimensions, proceeding with default")
+
     def read_input(self) -> None:
         self.KM.xdim = int(self.x_dim_entry.get())
+        #print(f"self.KM.xdim: {self.KM.xdim}, {type(self.KM.xdim) = }")
         self.KM.ydim = int(self.y_dim_entry.get())
+        #print(f"self.KM.ydim: {self.KM.ydim}, {type(self.KM.ydim) = }")
         self.KM.dead = int(self.deadzone_entry.get())
         self.KM.threshd = float(self.threshold_entry.get())
         self.KM.zp = int(self.zbeam_entry.get())
+        #print(f"self.KM.zp: {self.KM.zp}, {type(self.KM.zp) = }")
         self.KM.mp = int(self.mbeam_entry.get())
+        #print(f"self.KM.mp: {self.KM.mp}, {type(self.KM.mp) = }")
         self.KM.ke  = float(self.beamke_entry.get()) # kinetic energy in MeV/u
         self.KM.ep = self.KM.ke*self.KM.mp # kinetic energy in MeV
         self.KM.zt = int(self.ztarget_entry.get())
         self.KM.mt = int(self.mtarget_entry.get())
+        #print(f"self.KM.mt: {self.KM.mt}, {type(self.KM.mt) = }")
         #self.KM.et = 0 # target is at rest
         self.KM.zr = int(self.ztargetlike_entry.get())
         self.KM.mr = int(self.mtargetlike_entry.get())

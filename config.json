@@ -1,0 +1,34 @@
+{
+    "Workspace": {
+        "solutions_path": "/Users/thatswhaticed/Coding/PHY/KinematicsSim/temp",
+        "workspace_path": "/Users/thatswhaticed/Coding/PHY/KinematicsSim"      
+    },
+    "Isotope Info": {
+        "zbeam_entry": 5,
+        "mbeam_entry": 11,
+        "ztarget_entry": 2,
+        "mtarget_entry": 4,
+        "ztargetlike_entry": 2,
+        "mtargetlike_entry": 4
+    },
+    "Reaction Info": {
+        "beamke_entry": 15,
+        "comangle_entry": 45,
+        "nreaction_entry": 2,
+        "excitation_entry": 10
+    },
+    "Dimension of Detector": {
+        "x_dim_entry": 100,
+        "y_dim_entry": 30,
+        "deadzone_entry": 3,
+        "threshold_entry": 6
+    },
+    "Solutions": {
+        "solns": "TRUE",
+        "Simple_Sim_randomvz.csv": "Simple_Sim_randomvz.csv",
+        "Simple_Sim_random_CMvz.csv": "Simple_Sim_random_CMvz.csv",
+        "EN_fixedvz_0ex.csv": "EN_fixedvz_0ex.csv",
+        "EN_0ex.csv": "EN_0ex.csv",
+        "EN_randomex.csv": "EN_randomex.csv"
+    }
+}

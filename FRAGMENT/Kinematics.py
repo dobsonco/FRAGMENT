@@ -4,7 +4,8 @@ from sys import path
 import os
 from multiprocessing import Process
 from pandas import read_csv, DataFrame
-from numba import njit, jit
+from numba import jit
+from time import localtime
 
 class Kinematics:
     def __init__(self):
@@ -39,6 +40,7 @@ class Kinematics:
         '''
         # The Q value is the difference between the incoming and outgoing masses, expressed in MeV
         amu = 931.4941024
+
         try:
             mexp = self.mexcess[self.zp, self.mp-self.zp]
             mext = self.mexcess[self.zt, self.mt-self.zt]
@@ -51,7 +53,7 @@ class Kinematics:
             mexr=0
             mexe=0
         
-        self.mp = (self.mp*amu + mexp) / amu # convert mass to amu units
+        self.mp = (float(self.mp)*float(amu) + float(mexp)) / float(amu) # convert mass to amu units
         self.mt = (self.mt*amu + mext) / amu # convert mass to amu units
         self.mr = (self.mr*amu + mexr) / amu # convert mass to amu units
         self.me = (self.me*amu + mexe) / amu # convert mass to amu units
@@ -317,6 +319,7 @@ class Kinematics:
         plt.clf()
         plt.close('all')
 
+    @jit(forceobj=True)
     def createENFig(self) -> None:
         size = 4*(1.05 - (1-np.exp(-2E-4 * self.nreactions)))
         fig,ax = plt.subplots(nrows=3,ncols=3,figsize=(10,8))
