@@ -4,7 +4,8 @@ import numpy as np
 from threading import Thread
 from PIL import ImageTk
 import os
-from json import load
+from json import load,dump
+from datetime import datetime
 from .Kinematics import Kinematics
 
 class Window(Tk):
@@ -109,19 +110,20 @@ class Window(Tk):
         # self.read_button = Button(self.button_frame,text="Read Inputs",command=self.read_input)
         # self.read_button.grid(row=0,column=0)
 
-        self.run_button = Button(self.button_frame,text="Run Regular Sim",command=self.run)
+        self.run_button = Button(self.button_frame,text="Run Simple Sim",command=self.run)
         self.run_button.grid(row=0,column=0)
-        # self.run_button["state"] = "disabled"
 
         self.runEN_button = Button(self.button_frame,text="Run Energy Sim",command=self.runEN)
         self.runEN_button.grid(row=0,column=1)
-        # self.runEN_button["state"] = "disabled"
 
         self.info_button = Button(self.button_frame,text="Info",command=self.infoWin)
         self.info_button.grid(row=0,column=2)
 
         self.import_button = Button(self.button_frame,text="Import Config",command=self.readConfig)
         self.import_button.grid(row=0,column=3)
+
+        self.export_button = Button(self.button_frame,text="Export Config",command=self.exportConfig)
+        self.export_button.grid(row=0,column=4)
 
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
@@ -130,88 +132,152 @@ class Window(Tk):
         with open("config.json") as json_file:
             params = load(json_file)
 
-        # try:
-        #     workspace_params = params["Workspace"]
-        #     self.KM.temp_folder = workspace_params["solutions_path"]
-        #     self.KM.sys_path = workspace_params["workspace_path"]
-        # except:
-        #     print(f"Unable to read file locations, proceeding with default: {self.KM.resource_path}")
+        if "Workspace" in params.keys():
+            try:
+                workspace_params = params["Workspace"]
+                self.KM.temp_folder = workspace_params["solutions_path"]
+                self.KM.sys_path = workspace_params["workspace_path"]
+            except:
+                self.errMessage("","Failed to load Workspace Params")
 
-        try:
-            isotope_params = params["Isotope Info"]
+        if "Isotope Info" in params.keys():
+            try:
+                isotope_params = params["Isotope Info"]
 
-            self.zbeam_entry.delete(0,END)
-            self.zbeam_entry.insert(0,isotope_params["zbeam_entry"])
+                self.zbeam_entry.delete(0,END)
+                self.zbeam_entry.insert(0,isotope_params["zbeam_entry"])
 
-            self.mbeam_entry.delete(0,END)
-            self.mbeam_entry.insert(0,isotope_params["mbeam_entry"])
-                        
-            self.ztarget_entry.delete(0,END)
-            self.ztarget_entry.insert(0,isotope_params["ztarget_entry"])
+                self.mbeam_entry.delete(0,END)
+                self.mbeam_entry.insert(0,isotope_params["mbeam_entry"])
+                            
+                self.ztarget_entry.delete(0,END)
+                self.ztarget_entry.insert(0,isotope_params["ztarget_entry"])
 
-            self.mtarget_entry.delete(0,END)
-            self.mtarget_entry.insert(0,isotope_params["mtarget_entry"])
+                self.mtarget_entry.delete(0,END)
+                self.mtarget_entry.insert(0,isotope_params["mtarget_entry"])
 
-            self.ztargetlike_entry.delete(0,END)
-            self.ztargetlike_entry.insert(0,isotope_params["ztargetlike_entry"])
+                self.ztargetlike_entry.delete(0,END)
+                self.ztargetlike_entry.insert(0,isotope_params["ztargetlike_entry"])
 
-            self.mtargetlike_entry.delete(0,END)
-            self.mtargetlike_entry.insert(0,isotope_params["mtargetlike_entry"])
-        except:
-            print("Failed to load isotope info")
-            return
+                self.mtargetlike_entry.delete(0,END)
+                self.mtargetlike_entry.insert(0,isotope_params["mtargetlike_entry"])
+            except:
+                self.errMessage("","Failed to load Isotope Params")
+                return
         
+        if "Reaction Info" in params.keys():
+            try:
+                reaction_params = params["Reaction Info"]
+
+                self.beamke_entry.delete(0,END)
+                self.beamke_entry.insert(0,reaction_params["beamke_entry"])
+
+                self.comangle_entry.delete(0,END)
+                self.comangle_entry.insert(0,reaction_params["comangle_entry"])
+
+                self.nreaction_entry.delete(0,END)
+                self.nreaction_entry.insert(0,reaction_params["nreaction_entry"])
+
+                self.excitation_entry.delete(0,END)
+                self.excitation_entry.insert(0,reaction_params["excitation_entry"])
+            except:
+                self.errMessage("","Failed to load Reaction Params")
+                return
+
+        if "Dimension of Detector" in params.keys():
+            try:
+                dim_params = params["Dimension of Detector"]
+
+                self.x_dim_entry.delete(0,END)
+                self.x_dim_entry.insert(0,dim_params["x_dim_entry"])
+
+                self.y_dim_entry.delete(0,END)
+                self.y_dim_entry.insert(0,dim_params["y_dim_entry"])
+
+                self.deadzone_entry.delete(0,END)
+                self.deadzone_entry.insert(0,dim_params["deadzone_entry"])
+
+                self.threshold_entry.delete(0,END)
+                self.threshold_entry.insert(0,dim_params["threshold_entry"])
+            except:
+                self.errMessage("","Failed to load Dimension Params")
+                print("Failed to load dimensions, proceeding with default")
+
+        return
+
+    def exportConfig(self) -> None:
         try:
-            reaction_params = params["Reaction Info"]
+            solutions_path = self.KM.temp_folder
+            workspace_path = self.KM.sys_path
+            Workspace = {
+                "solutions_path":solutions_path,
+                "workspace_path":workspace_path
+            }
 
-            self.beamke_entry.delete(0,END)
-            self.beamke_entry.insert(0,reaction_params["beamke_entry"])
+            ke  = int(self.beamke_entry.get()) # kinetic energy in MeV/u
+            simple_cm = int(self.comangle_entry.get())# in deg
+            nreactions = int(self.nreaction_entry.get()) # in thousands
+            ex = int(self.excitation_entry.get()) # Excitation in MeV
+            ReactionInfo = {
+                "beamke_entry": ke,
+                "comangle_entry":simple_cm,
+                "nreaction_entry":nreactions,
+                "excitation_entry":ex
+            }
 
-            self.comangle_entry.delete(0,END)
-            self.comangle_entry.insert(0,reaction_params["comangle_entry"])
+            zp = int(self.zbeam_entry.get())
+            mp = int(self.mbeam_entry.get())
+            zt = int(self.ztarget_entry.get())
+            mt = int(self.mtarget_entry.get())
+            zr = int(self.ztargetlike_entry.get())
+            mr = int(self.mtargetlike_entry.get())
+            IsotopeInfo = {
+                "zbeam_entry": zp,
+                "mbeam_entry": mp,
+                "ztarget_entry": zt,
+                "mtarget_entry": mt,
+                "ztargetlike_entry": zr,
+                "mtargetlike_entry": mr
+            }
 
-            self.nreaction_entry.delete(0,END)
-            self.nreaction_entry.insert(0,reaction_params["nreaction_entry"])
+            xdim = int(self.x_dim_entry.get())
+            ydim = int(self.y_dim_entry.get())
+            dead = int(self.deadzone_entry.get())
+            threshd = int(self.threshold_entry.get())
+            Dimensions = {
+                "x_dim_entry": xdim,
+                "y_dim_entry": ydim,
+                "deadzone_entry": dead,
+                "threshold_entry": threshd
+            }
 
-            self.excitation_entry.delete(0,END)
-            self.excitation_entry.insert(0,reaction_params["excitation_entry"])
+            #Add solutions dict
+
+            export = {
+                "Workspace":Workspace,
+                "Isotope Info": IsotopeInfo,
+                "Reaction Info": ReactionInfo,
+                "Dimension of Detector": Dimensions,
+                # Add solution names later
+            }
+
+            with open(f"{datetime.now():%Y-%m-%d_%H:%M:%S}.json", 'w') as fp:
+                dump(export, fp, indent = 4)
         except:
-            print("Failed to load Reaction Info")
-            return
-
-        try:
-            dim_params = params["Dimension of Detector"]
-
-            self.x_dim_entry.delete(0,END)
-            self.x_dim_entry.insert(0,dim_params["x_dim_entry"])
-
-            self.y_dim_entry.delete(0,END)
-            self.y_dim_entry.insert(0,dim_params["y_dim_entry"])
-
-            self.deadzone_entry.delete(0,END)
-            self.deadzone_entry.insert(0,dim_params["deadzone_entry"])
-
-            self.threshold_entry.delete(0,END)
-            self.threshold_entry.insert(0,dim_params["threshold_entry"])
-        except:
-            print("Failed to load dimensions, proceeding with default")
+            self.errMessage("","Failed to export config")
+        return
 
     def read_input(self) -> None:
         self.KM.xdim = int(self.x_dim_entry.get())
-        #print(f"self.KM.xdim: {self.KM.xdim}, {type(self.KM.xdim) = }")
         self.KM.ydim = int(self.y_dim_entry.get())
-        #print(f"self.KM.ydim: {self.KM.ydim}, {type(self.KM.ydim) = }")
         self.KM.dead = int(self.deadzone_entry.get())
         self.KM.threshd = float(self.threshold_entry.get())
         self.KM.zp = int(self.zbeam_entry.get())
-        #print(f"self.KM.zp: {self.KM.zp}, {type(self.KM.zp) = }")
         self.KM.mp = int(self.mbeam_entry.get())
-        #print(f"self.KM.mp: {self.KM.mp}, {type(self.KM.mp) = }")
         self.KM.ke  = float(self.beamke_entry.get()) # kinetic energy in MeV/u
         self.KM.ep = self.KM.ke*self.KM.mp # kinetic energy in MeV
         self.KM.zt = int(self.ztarget_entry.get())
         self.KM.mt = int(self.mtarget_entry.get())
-        #print(f"self.KM.mt: {self.KM.mt}, {type(self.KM.mt) = }")
         #self.KM.et = 0 # target is at rest
         self.KM.zr = int(self.ztargetlike_entry.get())
         self.KM.mr = int(self.mtargetlike_entry.get())
@@ -226,27 +292,22 @@ class Window(Tk):
 
         if self.KM.threshd >= self.KM.ydim:
             self.errMessage("Value Error", "Detection threshold greater than radius of detector")
-            # self.toggleRunButtons("off")
             return
         
         if self.KM.dead >= self.KM.ydim:
             self.errMessage("Value Error", "Detection deadzone greater than radius of detector")
-            # self.toggleRunButtons("off")
             return
         
         if self.KM.zp > self.KM.mp:
             self.errMessage("Value Error", "Projectile Z less than A ")
-            # self.toggleRunButtons("off")
             return
 
         if self.KM.zt > self.KM.mt:
             self.errMessage("Value Error", "Target Z less than A ")
-            # self.toggleRunButtons("off")
             return
         
         if self.KM.zr > self.KM.mr:
             self.errMessage("Value Error", "Targetlike Z less than A ")
-            # self.toggleRunButtons("off")
             return
 
         try:
@@ -255,11 +316,10 @@ class Window(Tk):
             self.errMessage("","Error setting kinematics")
             return
         
-        if self.run_button["state"] == "disabled":
-            self.toggleRunButtons("on")
+        # if self.run_button["state"] == "disabled":
+        #     self.toggleRunButtons("on")
 
     def run(self) -> None:
-        # self.toggleRunButtons("off")
         try:
             self.read_input()
             t = Thread(self.KM.determineDetected())
@@ -268,7 +328,6 @@ class Window(Tk):
             self.errMessage("","Error running simple simulation")
 
     def runEN(self) -> None:
-        # self.toggleRunButtons("off")
         self.read_input()
         t = Thread(self.KM.determineEnergy())
         t.start()

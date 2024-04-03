@@ -5,11 +5,11 @@
     },
     "Isotope Info": {
         "zbeam_entry": 5,
-        "mbeam_entry": 11,
+        "mbeam_entry": 10,
         "ztarget_entry": 2,
         "mtarget_entry": 4,
-        "ztargetlike_entry": 2,
-        "mtargetlike_entry": 4
+        "ztargetlike_entry": 3,
+        "mtargetlike_entry": 6
     },
     "Reaction Info": {
         "beamke_entry": 15,
