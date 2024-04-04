@@ -7,11 +7,13 @@ import os
 from json import load,dump
 from datetime import datetime
 from .Kinematics import Kinematics
+from sys import path
 
 class Window(Tk):
     def __init__(self):
         super().__init__()
         self.KM = Kinematics()
+        self.sys_path = path[0]
         
         self.protocol("WM_DELETE_WINDOW",lambda:self.destroy())
         self.title("AT-TPC Sim")
@@ -129,8 +131,9 @@ class Window(Tk):
             widget.grid_configure(padx=5,pady=5)
 
     def readConfig(self) -> None:
-        with open("config.json") as json_file:
-            params = load(json_file)
+        with open(os.path.join(self.sys_path,"config.json")) as jsonfile:
+            params = load(jsonfile)
+            jsonfile.close()
 
         if "Workspace" in params.keys():
             try:
@@ -261,8 +264,10 @@ class Window(Tk):
                 # Add solution names later
             }
 
-            with open(f"{datetime.now():%Y-%m-%d_%H:%M:%S}.json", 'w') as fp:
-                dump(export, fp, indent = 4)
+            with open(os.path.join(self.sys_path,f"{datetime.now():%Y_%m_%d-%H_%M}.json"), 'w') as jsonfile:
+                dump(export, jsonfile, indent = 4)
+                jsonfile.close()
+
         except:
             self.errMessage("","Failed to export config")
         return

@@ -143,7 +143,7 @@ class Kinematics:
         if self.stop:
             return
         
-        now = f"{datetime.now():%Y-%m-%d_%H:%M:%S}"
+        now = f"{datetime.now():%Y_%m_%d-%H_%M}"
         
         self.ENloop1()
         export_df = DataFrame({"vz":np.ones_like(self.Energy11)*self.simple_cm/2,
@@ -151,7 +151,7 @@ class Kinematics:
                                "er":self.Energy11,
                                "ee":self.Energy12,
                                "ex":np.zeros_like(self.Energy11)})
-        export_df.to_csv(os.path.join(self.temp_folder,f"{now}-EN_fixedvz_0ex.csv"),index=False)
+        export_df.to_csv(os.path.join(self.temp_folder,f"{now}_EN_fixedvz_0ex.csv"),index=False)
 
         self.ENloop2()
         export_df = DataFrame({"vz":self.vz2,
@@ -394,7 +394,7 @@ class Kinematics:
         ax[2,2].legend()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y-%m-%d_%H:%M:%S}.jpg"),format="jpg",dpi=300)
+        plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y_%m_%d-%H_%M}.jpg"),format="jpg",dpi=300)
         plt.show()
         plt.cla()
         plt.clf()

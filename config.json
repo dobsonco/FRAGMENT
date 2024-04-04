@@ -1,34 +1,26 @@
 {
     "Workspace": {
-        "solutions_path": "/Users/thatswhaticed/Coding/PHY/KinematicsSim/temp",
-        "workspace_path": "/Users/thatswhaticed/Coding/PHY/KinematicsSim"      
+        "solutions_path": "c:\\Python_Projects\\Nuclear\\KinematicsSim\\temp",
+        "workspace_path": "c:\\Python_Projects\\Nuclear\\KinematicsSim"
     },
     "Isotope Info": {
-        "zbeam_entry": 5,
+        "zbeam_entry": 4,
         "mbeam_entry": 10,
-        "ztarget_entry": 2,
-        "mtarget_entry": 4,
-        "ztargetlike_entry": 3,
-        "mtargetlike_entry": 6
+        "ztarget_entry": 1,
+        "mtarget_entry": 1,
+        "ztargetlike_entry": 1,
+        "mtargetlike_entry": 1
     },
     "Reaction Info": {
-        "beamke_entry": 15,
+        "beamke_entry": 10,
         "comangle_entry": 45,
-        "nreaction_entry": 2,
-        "excitation_entry": 10
+        "nreaction_entry": 10,
+        "excitation_entry": 0
     },
     "Dimension of Detector": {
         "x_dim_entry": 100,
-        "y_dim_entry": 30,
+        "y_dim_entry": 28,
         "deadzone_entry": 3,
         "threshold_entry": 6
-    },
-    "Solutions": {
-        "solns": "TRUE",
-        "Simple_Sim_randomvz.csv": "Simple_Sim_randomvz.csv",
-        "Simple_Sim_random_CMvz.csv": "Simple_Sim_random_CMvz.csv",
-        "EN_fixedvz_0ex.csv": "EN_fixedvz_0ex.csv",
-        "EN_0ex.csv": "EN_0ex.csv",
-        "EN_randomex.csv": "EN_randomex.csv"
     }
 }
