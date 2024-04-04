@@ -64,80 +64,99 @@ class Kinematics:
 
         return
 
-    @jit(forceobj=True,looplift=True)
     def determineDetected(self) -> None:
         if self.stop:
             return 
         
-        try:
-            self.cm = self.simple_cm
-            self.labA1 = self.labAngle()
-            self.labE1 = self.labEnergy(self.mr,self.me,self.labA1)/self.mr
-            self.labA2 = self.labAngle2()
-            self.labE2 = self.labEnergy(self.me,self.mr,self.labA2)/self.me # Swap mr and me for the beam-like
-    
-        except:
-            print("error")
-            self.stop = True
-            raise Exception
+        now = f"{datetime.now():%Y_%m_%d-%H_%M}"
 
-        self.vz1 = []
-        for _ in range(self.nreactions):
-            vz = np.random.uniform(0.01,self.xdim-0.01)
-            if self.labA1 < np.pi/2:
-                y1 = (self.xdim-vz)*np.tan(self.labA1)
-            else:
-                y1 = vz*np.tan(self.labA1)
-            if self.labA2 < np.pi/2:
-                y2 = (self.xdim-vz)*np.tan(self.labA2)
-            else:
-                y2 = vz*np.tan(self.labA2)
-            # The conditions for a successful event should be:
-            # target-like Y > Deadzone (which means coming out of the dead zone)
-            # AND beam-like Y < Threshold (which means entering in the zero degree detector)
-            if y1 >= self.dead and y2 <= self.threshd:
-                self.vz1.append(vz)
-
+        self.simpleLoop1()
         if len(self.vz1) <= 0:
             raise Exception
         
         export_df = DataFrame({"vz":self.vz1,
-                               "cm":np.ones(len(self.vz1))*self.cm,
+                               "cm":np.ones(len(self.vz1))*self.simple_cm,
                                "ex":np.zeros_like(self.vz1)})
-        export_df.to_csv(os.path.join(self.temp_folder,"Simple_Sim_randomvz.csv"),index=False)
-        
-        self.Cm2 = []
-        self.vz2 = []
-        for _ in range(self.nreactions):
-            self.cm = np.random.uniform(0,np.pi)
-            vz = np.random.uniform(0,self.xdim)
-            A1 = self.labAngle()
-            A2 = self.labAngle2()
-            if A1 < np.pi/2:
-                y1 = (self.xdim-vz)*np.tan(A1)
-            else:
-                y1 = vz*np.tan(A1)
-            if A2 < np.pi/2:
-                y2 = (self.xdim-vz)*np.tan(A2)
-            else:
-                y2 = vz*np.tan(A2)
-            # The conditions for a successful event should be:
-            # target-like Y > Deadzone (which means coming out of the dead zone)
-            # AND beam-like Y < Threshold (which means entering in the zero degree detector)
-            if y1 >= self.dead and y2 <= self.threshd:
-                self.Cm2.append(self.cm)
-                self.vz2.append(vz)
-
+        export_df.to_csv(os.path.join(self.temp_folder,f"{now}-Simple_Sim_randomvz.csv"),index=False)
+ 
+        self.simpleLoop2()
         if len(self.vz2) <= 0:
             raise Exception
 
         export_df = DataFrame({"vz":self.vz2,
                                "cm":self.Cm2,
                                "ex":np.zeros_like(self.vz2)})
-        export_df.to_csv(os.path.join(self.temp_folder,"Simple_Sim_random_CMvz.csv"),index=False)
+        export_df.to_csv(os.path.join(self.temp_folder,f"{now}-Simple_Sim_random_CMvz.csv"),index=False)
 
         p = Process(target=self.createFig)
         p.start()
+
+    @jit(forceobj=True,looplift=True)
+    def simpleLoop1(self):
+        self.cm = np.ones(shape=self.nreactions) * self.simple_cm
+        self.vz1 = np.random.uniform(0,self.xdim,size=self.nreactions)
+        A1 = self.labAngle()
+        A2 = self.labAngle2()
+        Er = self.labEnergy(self.mr,self.me,A1)/self.mr
+        Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+
+        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee))
+        self.cm = self.cm[NOTNA]
+        self.vz1 = self.vz1[NOTNA]
+        A1 = A1[NOTNA]
+        A2 = A2[NOTNA]
+        # Er = Er[NOTNA]
+        # Ee = Ee[NOTNA]
+
+        LT = A1 < np.pi/2
+        GT = ~LT
+        y1 = np.zeros_like(A1)
+        y1[LT] = np.tan(A1[LT]) * (self.xdim-self.vz1[LT])
+        y1[GT] = np.tan(A1[GT]) * self.vz1[GT]
+
+        LT = A2 < np.pi/2
+        GT = ~LT
+        y2 = np.zeros_like(A2)
+        y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz1[LT])
+        y2[GT] = np.tan(A2[GT]) * self.vz1[GT]
+
+        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz1 = self.vz1[DETECTED]
+
+        return
+    
+    @jit(forceobj=True,looplift=True)
+    def simpleLoop2(self):
+        self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
+        self.vz2 = np.random.uniform(0,self.xdim,size=self.nreactions)
+        A1 = self.labAngle()
+        A2 = self.labAngle2()
+        Er = self.labEnergy(self.mr,self.me,A1)/self.mr
+        Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+
+        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee))
+        self.cm = self.cm[NOTNA]
+        self.vz2 = self.vz2[NOTNA]
+        A1 = A1[NOTNA]
+        A2 = A2[NOTNA]
+
+        LT = A1 < np.pi/2
+        GT = ~LT
+        y1 = np.zeros_like(A1)
+        y1[LT] = np.tan(A1[LT]) * (self.xdim-self.vz2[LT])
+        y1[GT] = np.tan(A1[GT]) * self.vz2[GT]
+
+        LT = A2 < np.pi/2
+        GT = ~LT
+        y2 = np.zeros_like(A2)
+        y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz2[LT])
+        y2[GT] = np.tan(A2[GT]) * self.vz2[GT]
+
+        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz2 = self.vz2[DETECTED]
+        self.Cm2 = self.cm[DETECTED]
+
+        return
 
     def determineEnergy(self) -> None:
         if self.stop:
@@ -151,7 +170,7 @@ class Kinematics:
                                "er":self.Energy11,
                                "ee":self.Energy12,
                                "ex":np.zeros_like(self.Energy11)})
-        export_df.to_csv(os.path.join(self.temp_folder,f"{now}_EN_fixedvz_0ex.csv"),index=False)
+        export_df.to_csv(os.path.join(self.temp_folder,f"{now}-EN_fixedvz_0ex.csv"),index=False)
 
         self.ENloop2()
         export_df = DataFrame({"vz":self.vz2,
@@ -172,7 +191,7 @@ class Kinematics:
         p = Process(target=self.createENFig)
         p.start()
 
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def ENloop1(self) -> None:
         vz = self.xdim / 2
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
@@ -207,7 +226,7 @@ class Kinematics:
 
         return
     
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def ENloop2(self) -> None:
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
         self.vz2 = np.random.uniform(0,self.xdim,size=self.nreactions)
@@ -244,7 +263,7 @@ class Kinematics:
 
         return
 
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def ENloop3(self) -> None:
         amu = 931.4941024 # MeV/U
 
@@ -290,6 +309,7 @@ class Kinematics:
 
     def createFig(self) -> None:
         fig,ax = plt.subplots(nrows=3,ncols=1,dpi=150)
+
         ax[0].set_xlabel("Vertex of Reaction")
         ax[0].set_ylabel("Counts")
         ax[0].set_title(f"Number of detections for cm = {self.simple_cm*180/np.pi}")
@@ -312,11 +332,10 @@ class Kinematics:
         ax[2].set_facecolor('#ADD8E6')
         ax[2].set_axisbelow(True)
         ax[2].yaxis.grid(color='white', linestyle='-')
-        ax[2].hist(self.vz1,bins=100,range=(0,self.xdim))
+        ax[2].hist(self.vz2,bins=100,range=(0,self.xdim))
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.temp_folder,'fig1.jpg'),format="jpg")
-        plt.show()
+        plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y_%m_%d-%H_%M}_simple.png"),format="png")
         plt.cla()
         plt.clf()
         plt.close('all')
@@ -394,25 +413,24 @@ class Kinematics:
         ax[2,2].legend()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y_%m_%d-%H_%M}.jpg"),format="jpg",dpi=300)
-        plt.show()
+        plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y_%m_%d-%H_%M}_energy.png"),format="png")
         plt.cla()
         plt.clf()
         plt.close('all')
     
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def labAngle(self) -> np.ndarray:
         gam: np.ndarray = np.sqrt(self.mp*self.mr/self.mt/self.me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab: np.ndarray = np.arctan2(np.sin(self.cm),gam-np.cos(self.cm))
         return lab
     
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def labAngle2(self) -> np.ndarray:
         gam: np.ndarray = np.sqrt(self.mp*self.me/self.mt/self.mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab: np.ndarray = np.arctan2(np.sin(self.cm),gam+np.cos(self.cm))
         return lab
 
-    @jit(forceobj=True)
+    @jit(forceobj=True,looplift=True)
     def labEnergy(self,mr,me,th) -> np.ndarray:
         delta: np.ndarray = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         fir: np.ndarray = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
