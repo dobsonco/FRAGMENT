@@ -6,8 +6,8 @@ from PIL import ImageTk
 import os
 from json import load,dump
 from datetime import datetime
-from .Kinematics import Kinematics
 from sys import path
+from .Kinematics import Kinematics
 
 class Window(Tk):
     def __init__(self):
@@ -112,7 +112,7 @@ class Window(Tk):
         # self.read_button = Button(self.button_frame,text="Read Inputs",command=self.read_input)
         # self.read_button.grid(row=0,column=0)
 
-        self.run_button = Button(self.button_frame,text="Run Simple Sim",command=self.run)
+        self.run_button = Button(self.button_frame,text="Run Simple Sim",command=self.runSimple)
         self.run_button.grid(row=0,column=0)
 
         self.runEN_button = Button(self.button_frame,text="Run Energy Sim",command=self.runEN)
@@ -121,7 +121,7 @@ class Window(Tk):
         self.info_button = Button(self.button_frame,text="Info",command=self.infoWin)
         self.info_button.grid(row=0,column=2)
 
-        self.import_button = Button(self.button_frame,text="Import Config",command=self.readConfig)
+        self.import_button = Button(self.button_frame,text="Import Config",command=self.configWin)
         self.import_button.grid(row=0,column=3)
 
         self.export_button = Button(self.button_frame,text="Export Config",command=self.exportConfig)
@@ -130,10 +130,13 @@ class Window(Tk):
         for widget in self.button_frame.winfo_children():
             widget.grid_configure(padx=5,pady=5)
 
-    def readConfig(self) -> None:
-        with open(os.path.join(self.sys_path,"config.json")) as jsonfile:
-            params = load(jsonfile)
-            jsonfile.close()
+    def readConfig(self,NAME) -> None:
+        try:
+            with open(os.path.join(self.sys_path,NAME)) as jsonfile:
+                params = load(jsonfile)
+                jsonfile.close()
+        except:
+            raise Exception
 
         if "Workspace" in params.keys():
             try:
@@ -324,21 +327,24 @@ class Window(Tk):
         # if self.run_button["state"] == "disabled":
         #     self.toggleRunButtons("on")
 
-    def run(self) -> None:
+    def runSimple(self) -> None:
         try:
             self.read_input()
             t = Thread(self.KM.determineDetected())
             t.start()
         except:
             self.errMessage("","Error running simple simulation")
+        return
 
     def runEN(self) -> None:
         self.read_input()
         t = Thread(self.KM.determineEnergy())
         t.start()
+        return
 
     def errMessage(self, errtype: str, message: str) -> None:
         messagebox.showerror(title=errtype,message=message)
+        return
 
     # def toggleRunButtons(self,state) -> None:
     #     """
@@ -356,6 +362,7 @@ class Window(Tk):
         def delete_monitor(self: Window) -> None:
             self.infoWindow.destroy()
             self.info_button['state'] = 'active'
+            return
 
         self.infoWindow = Toplevel(master=self)
         self.infoWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
@@ -378,3 +385,33 @@ class Window(Tk):
 
         self.infoMessageReaction = Message(self.infoLabelDims,text='''In the Dimensions frame, you can enter the Length of the detector (X dimension), the center of mass angle (cm) of the reaction, the deadzone at the center of the detector (for more info, look at the design for the AT-TPC), and the threshold for detection (this is the distance outside of the deadzone required to classify the particle). Particles that do not not pass the threshold but enter the deadzone will be picked up by the zero angle detector.''',aspect=700)
         self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
+
+    def configWin(self) -> None:
+        def readConfigAndCloseWin(self: Window,NAME):
+            try:
+                self.readConfig(NAME)
+                delete_monitor(self)
+            except:
+                self.errMessage("","Invalid Filename")
+            return
+        def delete_monitor(self: Window,) -> None:
+            self.configWindow.destroy()
+            return
+
+        self.configWindow = Toplevel(master=self)
+        self.configWindow.protocol("WM_DELETE_WINDOW",lambda: delete_monitor(self))
+        self.configWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(self.KM.resource_path,'FRIBlogo.png'),format='png'))
+        self.configWindow.title('Config Entry')
+        #self.configWindow.resizable(False, False)
+
+        self.configFrame = Frame(self.configWindow,padx=10,pady=3)
+        self.configFrame.pack()
+
+        self.configLabel = LabelFrame(self.configFrame,text="Enter name of config file")
+        self.configLabel.grid(row=0,column=0,sticky="ew",padx=10,pady=5)
+
+        self.configMessage = Entry(self.configLabel,textvariable=StringVar())
+        self.configMessage.grid(row=1,column=0,sticky="ew")
+
+        self.configBtn = Button(self.configLabel,text="Read Config",command=lambda: readConfigAndCloseWin(self,self.configMessage.get()))
+        self.configBtn.grid(row=2,column=0)

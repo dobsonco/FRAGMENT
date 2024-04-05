@@ -1,0 +1,26 @@
+{
+    "Workspace": {
+        "solutions_path": "/path/to/directory/you/want/plots/data/to/go/in",
+        "workspace_path": "/OPTIONAL/path/to/directory/main.py/is/in"
+    },
+    "Isotope Info": {
+        "zbeam_entry": 5, <- Z of the beam (int)
+        "mbeam_entry": 10, <- M of the beam (int)
+        "ztarget_entry": 2, <- Z of target (int)
+        "mtarget_entry": 4, <- M of target (int)
+        "ztargetlike_entry": 3, <- Z of targetlike product (int)
+        "mtargetlike_entry": 6 <- M on tartgetlike product (int)
+    },
+    "Reaction Info": {
+        "beamke_entry": 15, <- KE in MeV (int)
+        "comangle_entry": 45, <- center of mass angle in degrees (int)
+        "nreaction_entry": 2, <- number of reactions to generate (int)
+        "excitation_entry": 10 <- excitation in MeV (int)
+    },
+    "Dimension of Detector": {
+        "x_dim_entry": 100, <- length of detector in cm (int)
+        "y_dim_entry": 30, <- height of detector in cm (int)
+        "deadzone_entry": 3, <- width of deadzone in cm (int)
+        "threshold_entry": 6 <- distance travelled for particles to be detected in cm (int)
+    }
+}
