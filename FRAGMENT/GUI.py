@@ -361,7 +361,7 @@ class Window(Tk):
     def infoWin(self) -> None:
         def delete_monitor(self: Window) -> None:
             self.infoWindow.destroy()
-            self.info_button['state'] = 'active'
+            self.info_button.config(state=NORMAL)
             return
 
         self.infoWindow = Toplevel(master=self)
@@ -369,7 +369,7 @@ class Window(Tk):
         self.infoWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(self.KM.resource_path,'FRIBlogo.png'),format='png'))
         self.infoWindow.title('What is this?')
         self.infoWindow.resizable(False, False)
-        self.info_button['state'] = 'disabled'
+        self.info_button.config(state = DISABLED)
 
         self.infoFrame = Frame(self.infoWindow)
         self.infoFrame.pack()
@@ -396,6 +396,7 @@ class Window(Tk):
                 self.errMessage("","Invalid Filename")
             return
         def delete_monitor(self: Window,) -> None:
+            self.import_button.config(state=NORMAL)
             self.configWindow.destroy()
             return
 
@@ -404,6 +405,7 @@ class Window(Tk):
         self.configWindow.iconphoto(False,ImageTk.PhotoImage(file=os.path.join(self.KM.resource_path,'FRIBlogo.png'),format='png'))
         self.configWindow.title('Config Entry')
         #self.configWindow.resizable(False, False)
+        self.import_button.config(state=DISABLED)
 
         self.configFrame = Frame(self.configWindow,padx=10,pady=3)
         self.configFrame.pack()
