@@ -9,7 +9,7 @@
         "ztarget_entry": 2, <- Z of target (int)
         "mtarget_entry": 4, <- M of target (int)
         "ztargetlike_entry": 3, <- Z of targetlike product (int)
-        "mtargetlike_entry": 6 <- M on tartgetlike product (int)
+        "mtargetlike_entry": 6 <- M of tartgetlike product (int)
     },
     "Reaction Info": {
         "beamke_entry": 15, <- KE in MeV (int)

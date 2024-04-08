@@ -46,6 +46,9 @@ class Kinematics:
             mext = self.mexcess[self.zt, self.mt-self.zt]
             mexr = self.mexcess[self.zr, self.mr-self.zr]
             mexe = self.mexcess[self.ze, self.me-self.ze]
+
+            if sum(np.isnan(np.array([mexp,mext,mexr,mexe]))) > 0:
+                raise Exception
         except:
             print("Missing mass excess for selected nuclei, proceeding without exact numbers")
             mexp=0
