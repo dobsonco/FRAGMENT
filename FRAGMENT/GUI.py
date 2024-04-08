@@ -387,8 +387,9 @@ class Window(Tk):
         self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
 
     def configWin(self) -> None:
-        def readConfigAndCloseWin(self: Window,NAME):
+        def readConfigAndCloseWin(self: Window) -> None:
             try:
+                NAME = str(self.configMessage.get())
                 self.readConfig(NAME)
                 delete_monitor(self)
             except:
@@ -413,5 +414,5 @@ class Window(Tk):
         self.configMessage = Entry(self.configLabel,textvariable=StringVar())
         self.configMessage.grid(row=1,column=0,sticky="ew")
 
-        self.configBtn = Button(self.configLabel,text="Read Config",command=lambda: readConfigAndCloseWin(self,self.configMessage.get()))
+        self.configBtn = Button(self.configLabel,text="Read Config",command=lambda: readConfigAndCloseWin(self))
         self.configBtn.grid(row=2,column=0)
