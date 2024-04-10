@@ -14,25 +14,31 @@ class Kinematics:
         self.temp_folder = os.path.join("..",self.sys_path,"temp")
         self.mexcess = read_csv(os.path.join(self.resource_path,'mexcess.csv')).to_numpy()
         
-        self.stop = True
+        self.stop: bool = True
 
-        self.xdim = None
-        self.ydim = None
-        self.dead = None
-        self.threshd = None
-        self.zp = None
-        self.mp = None
-        self.ke  = None # kinetic energy in MeV/u
-        self.ep = None # kinetic energy in MeV
-        self.zt = None
-        self.mt = None
-        self.zr = None
-        self.mr = None
-        self.ze = None # Conservation of Z
-        self.me = None # Conservation of A
-        self.simple_cm = None # in rad
-        self.nreactions = None
-        self.ex = None
+        self.xdim: int = None
+        self.ydim: int = None
+        self.dead: int = None
+        self.threshd: int = None
+        self.zp: float = None
+        self.mp: float = None
+        self.ke: float  = None # kinetic energy in MeV/u
+        self.ep: float = None # kinetic energy in MeV
+        self.zt: float = None
+        self.mt: float = None
+        self.zr: float = None
+        self.mr: float = None
+        self.ze: float = None # Conservation of Z
+        self.me: float = None # Conservation of A
+        self.simple_cm: float = None # in rad
+        self.nreactions: int = None
+        self.ex: np.ndarray = None
+        self.DETECTED1: np.ndarray = None
+        self.DETECTED2: np.ndarray = None
+        self.DETECTED3: np.ndarray = None
+        self.vz1: np.ndarray = None
+        self.vz3: np.ndarray = None
+        self.vz3: np.ndarray = None
 
     def setKinematics(self) -> None:
         '''
@@ -79,7 +85,8 @@ class Kinematics:
         
         export_df = DataFrame({"vz":self.vz1,
                                "cm":np.ones(len(self.vz1))*self.simple_cm,
-                               "ex":np.zeros_like(self.vz1)})
+                               "ex":np.zeros_like(self.vz1),
+                               "detected":self.DETECTED1.astype(int)})
         export_df.to_csv(os.path.join(self.temp_folder,f"{now}-Simple_Sim_randomvz.csv"),index=False)
  
         self.simpleLoop2()
@@ -88,7 +95,8 @@ class Kinematics:
 
         export_df = DataFrame({"vz":self.vz2,
                                "cm":self.Cm2,
-                               "ex":np.zeros_like(self.vz2)})
+                               "ex":np.zeros_like(self.vz2),
+                               "detected":self.DETECTED2.astype(int)})
         export_df.to_csv(os.path.join(self.temp_folder,f"{now}-Simple_Sim_random_CMvz.csv"),index=False)
 
         p = Process(target=self.createFig)
@@ -123,9 +131,8 @@ class Kinematics:
         y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz1[LT])
         y2[GT] = np.tan(A2[GT]) * self.vz1[GT]
 
-        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.vz1 = self.vz1[DETECTED]
-
+        self.DETECTED1 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz1 = self.vz1
         return
     
     @jit(forceobj=True,looplift=True)
@@ -155,9 +162,9 @@ class Kinematics:
         y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz2[LT])
         y2[GT] = np.tan(A2[GT]) * self.vz2[GT]
 
-        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.vz2 = self.vz2[DETECTED]
-        self.Cm2 = self.cm[DETECTED]
+        self.DETECTED2 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz2 = self.vz2
+        self.Cm2 = self.cm
 
         return
 
@@ -168,11 +175,12 @@ class Kinematics:
         now = f"{datetime.now():%Y_%m_%d-%H_%M}"
         
         self.ENloop1()
-        export_df = DataFrame({"vz":np.ones_like(self.Energy11)*self.simple_cm/2,
+        export_df = DataFrame({"vz":np.ones_like(self.Energy11)*self.xdim/2,
                                "cm":self.Cm1,
                                "er":self.Energy11,
                                "ee":self.Energy12,
-                               "ex":np.zeros_like(self.Energy11)})
+                               "ex":np.zeros_like(self.Energy11),
+                               "detected":self.DETECTED1.astype(int)})
         export_df.to_csv(os.path.join(self.temp_folder,f"{now}-EN_fixedvz_0ex.csv"),index=False)
 
         self.ENloop2()
@@ -180,7 +188,8 @@ class Kinematics:
                                "cm":self.Cm2,
                                "er":self.Energy21,
                                "ee":self.Energy22,
-                               "ex":np.zeros_like(self.vz2)})
+                               "ex":np.zeros_like(self.vz2),
+                               "detected":self.DETECTED2.astype(int)})
         export_df.to_csv(os.path.join(self.temp_folder,f"{now}-EN_0ex.csv"),index=False)
 
         self.ENloop3()
@@ -188,7 +197,8 @@ class Kinematics:
                                "cm":self.Cm3,
                                "er":self.Energy31,
                                "ee":self.Energy32,
-                               "ex":self.Excite3})
+                               "ex":self.Excite3,
+                               "detected":self.DETECTED3.astype(int)})
         export_df.to_csv(os.path.join(self.temp_folder,f"{now}-EN_randomex.csv"),index=False)
 
         p = Process(target=self.createENFig)
@@ -222,10 +232,10 @@ class Kinematics:
         y2[LT] = np.tan(A2[LT]) * (self.xdim-vz)
         y2[GT] = np.tan(A2[GT]) * vz
 
-        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.Cm1 = self.cm[DETECTED]
-        self.Energy11 = Er[DETECTED]
-        self.Energy12 = Ee[DETECTED]
+        self.DETECTED1 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.Cm1 = self.cm
+        self.Energy11 = Er
+        self.Energy12 = Ee
 
         return
     
@@ -258,11 +268,11 @@ class Kinematics:
         y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz2[LT])
         y2[GT] = np.tan(A2[GT]) * self.vz2[GT]
 
-        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.vz2 = self.vz2[DETECTED]
-        self.Cm2 = self.cm[DETECTED]
-        self.Energy21 = Er[DETECTED]
-        self.Energy22 = Ee[DETECTED]
+        self.DETECTED2 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz2 = self.vz2
+        self.Cm2 = self.cm
+        self.Energy21 = Er
+        self.Energy22 = Ee
 
         return
 
@@ -301,12 +311,12 @@ class Kinematics:
         y2[LT] = (self.xdim-self.vz3[LT]) * np.tan(A2[LT])
         y2[GT] = self.vz3[GT] * np.tan(A2[GT])
 
-        DETECTED = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.vz3 = self.vz3[DETECTED]
-        self.Cm3 = self.cm[DETECTED]
-        self.Energy31 = Er[DETECTED]
-        self.Energy32 = Ee[DETECTED]
-        self.Excite3 = Ex[DETECTED]
+        self.DETECTED3 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
+        self.vz3 = self.vz3
+        self.Cm3 = self.cm
+        self.Energy31 = Er
+        self.Energy32 = Ee
+        self.Excite3 = Ex
 
         return
 
@@ -319,7 +329,7 @@ class Kinematics:
         ax[0].set_facecolor('#ADD8E6')
         ax[0].set_axisbelow(True)
         ax[0].yaxis.grid(color='white', linestyle='-')
-        ax[0].hist(self.vz1,bins=100,range=(0,self.xdim))
+        ax[0].hist(self.vz1[self.DETECTED1],bins=100,range=(0,self.xdim))
 
         ax[1].set_xlabel("CM Angle (rad)")
         ax[1].set_ylabel("Counts")
@@ -327,7 +337,7 @@ class Kinematics:
         ax[1].set_facecolor('#ADD8E6')
         ax[1].set_axisbelow(True)
         ax[1].yaxis.grid(color='white', linestyle='-')
-        ax[1].hist(self.Cm2,bins=180,range=(0,np.pi))
+        ax[1].hist(self.Cm2[self.DETECTED2],bins=180,range=(0,np.pi))
 
         ax[2].set_xlabel("Vertex")
         ax[2].set_ylabel("Counts")
@@ -335,7 +345,7 @@ class Kinematics:
         ax[2].set_facecolor('#ADD8E6')
         ax[2].set_axisbelow(True)
         ax[2].yaxis.grid(color='white', linestyle='-')
-        ax[2].hist(self.vz2,bins=100,range=(0,self.xdim))
+        ax[2].hist(self.vz2[self.DETECTED2],bins=100,range=(0,self.xdim))
 
         plt.tight_layout()
         plt.savefig(os.path.join(self.temp_folder,f"{datetime.now():%Y_%m_%d-%H_%M}_simple.png"),format="png")
@@ -353,8 +363,8 @@ class Kinematics:
         ax[0,0].set_facecolor('#ADD8E6')
         ax[0,0].set_axisbelow(True)
         ax[0,0].yaxis.grid(color='white', linestyle='-')
-        ax[0,0].scatter(x=self.Cm1,y=self.Energy11,s=size,c="#ff7f0e")
-        ax[0,0].scatter(x=self.Cm1,y=self.Energy12,s=size,c="#1f77b4")
+        ax[0,0].scatter(x=self.Cm1[self.DETECTED1],y=self.Energy11[self.DETECTED1],s=size,c="#ff7f0e")
+        ax[0,0].scatter(x=self.Cm1[self.DETECTED1],y=self.Energy12[self.DETECTED1],s=size,c="#1f77b4")
         ax[0,0].scatter(x=-100,y=-100,s=10,c="#ff7f0e",label="Er")
         ax[0,0].scatter(x=-100,y=-100,s=10,c="#1f77b4",label="Ee")
         ax[0,0].set_xlim(-0.1,max(self.Cm1)+0.1)
@@ -370,15 +380,15 @@ class Kinematics:
         ax[1,0].set_facecolor('#ADD8E6')
         ax[1,0].set_axisbelow(True)
         ax[1,0].yaxis.grid(color='white', linestyle='-')
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy21,s=size,c="#ff7f0e")
-        ax[1,0].scatter(x=self.Cm2,y=self.Energy22,s=size,c="#1f77b4")
+        ax[1,0].scatter(x=self.Cm2[self.DETECTED2],y=self.Energy21[self.DETECTED2],s=size,c="#ff7f0e")
+        ax[1,0].scatter(x=self.Cm2[self.DETECTED2],y=self.Energy22[self.DETECTED2],s=size,c="#1f77b4")
 
         ax[1,1].set_xlabel("Vertex")
         ax[1,1].set_facecolor('#ADD8E6')
         ax[1,1].set_axisbelow(True)
         ax[1,1].yaxis.grid(color='white', linestyle='-')
-        ax[1,1].scatter(x=self.vz2,y=self.Energy21,s=size,c="#FC776AFF")
-        ax[1,1].scatter(x=self.vz2,y=self.Energy22,s=size,c="#5B84B1FF")
+        ax[1,1].scatter(x=self.vz2[self.DETECTED2],y=self.Energy21[self.DETECTED2],s=size,c="#FC776AFF")
+        ax[1,1].scatter(x=self.vz2[self.DETECTED2],y=self.Energy22[self.DETECTED2],s=size,c="#5B84B1FF")
         ax[1,1].scatter(x=-100,y=-100,s=10,c="#FC776AFF",label="Er")
         ax[1,1].scatter(x=-100,y=-100,s=10,c="#5B84B1FF",label="Ee")
         ax[1,1].set_xlim(-2,max(self.vz2)+2)
@@ -393,25 +403,25 @@ class Kinematics:
         ax[2,0].set_facecolor('#ADD8E6')
         ax[2,0].set_axisbelow(True)
         ax[2,0].yaxis.grid(color='white', linestyle='-')
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy31,s=size,c="#ff7f0e")
-        ax[2,0].scatter(x=self.Cm3,y=self.Energy32,s=size,c="#1f77b4")
+        ax[2,0].scatter(x=self.Cm3[self.DETECTED3],y=self.Energy31[self.DETECTED3],s=size,c="#ff7f0e")
+        ax[2,0].scatter(x=self.Cm3[self.DETECTED3],y=self.Energy32[self.DETECTED3],s=size,c="#1f77b4")
 
         ax[2,1].set_xlabel("Vertex")
         ax[2,1].set_facecolor('#ADD8E6')
         ax[2,1].set_axisbelow(True)
         ax[2,1].yaxis.grid(color='white', linestyle='-')
-        ax[2,1].scatter(x=self.vz3,y=self.Energy31,s=size,c="#FC776AFF")
-        ax[2,1].scatter(x=self.vz3,y=self.Energy32,s=size,c="#5B84B1FF")
+        ax[2,1].scatter(x=self.vz3[self.DETECTED3],y=self.Energy31[self.DETECTED3],s=size,c="#FC776AFF")
+        ax[2,1].scatter(x=self.vz3[self.DETECTED3],y=self.Energy32[self.DETECTED3],s=size,c="#5B84B1FF")
 
         ax[2,2].set_xlabel("Ex")
         ax[2,2].set_facecolor('#ADD8E6')
         ax[2,2].set_axisbelow(True)
         ax[2,2].yaxis.grid(color='white', linestyle='-')
-        ax[2,2].scatter(x=self.Excite3,y=self.Energy31,s=size,c="#5F4B8BFF")
-        ax[2,2].scatter(x=self.Excite3,y=self.Energy32,s=size,c="#E69A8DFF")
+        ax[2,2].scatter(x=self.Excite3[self.DETECTED3],y=self.Energy31[self.DETECTED3],s=size,c="#5F4B8BFF")
+        ax[2,2].scatter(x=self.Excite3[self.DETECTED3],y=self.Energy32[self.DETECTED3],s=size,c="#E69A8DFF")
         ax[2,2].scatter(x=-100,y=-100,s=10,c="#5F4B8BFF",label="Er")
         ax[2,2].scatter(x=-100,y=-100,s=10,c="#E69A8DFF",label="Ee")
-        ax[2,2].set_xlim(min(self.Excite3)-0.2,max(self.Excite3)+0.2)
+        ax[2,2].set_xlim(min(self.Excite3[self.DETECTED3])-0.2,max(self.Excite3[self.DETECTED3])+0.2)
         ax[2,2].set_ylim(-1)
         ax[2,2].legend()
 
