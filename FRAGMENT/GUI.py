@@ -133,7 +133,7 @@ class Window(Tk):
     def readConfig(self,NAME) -> None:
         try:
             with open(os.path.join(self.sys_path,NAME)) as jsonfile:
-                params = load(jsonfile)
+                params: dict = load(jsonfile)
                 jsonfile.close()
         except:
             raise Exception
@@ -323,9 +323,6 @@ class Window(Tk):
         except:
             self.errMessage("","Error setting kinematics")
             return
-        
-        # if self.run_button["state"] == "disabled":
-        #     self.toggleRunButtons("on")
 
     def runSimple(self) -> None:
         try:
@@ -337,26 +334,17 @@ class Window(Tk):
         return
 
     def runEN(self) -> None:
-        self.read_input()
-        t = Thread(self.KM.determineEnergy())
-        t.start()
+        try:
+            self.read_input()
+            t = Thread(self.KM.determineEnergy())
+            t.start()
+        except:
+            self.errMessage("","Error running energy simulation")
         return
 
     def errMessage(self, errtype: str, message: str) -> None:
         messagebox.showerror(title=errtype,message=message)
         return
-
-    # def toggleRunButtons(self,state) -> None:
-    #     """
-    #     options for state:
-    #     "on" or "off"
-    #     """
-    #     if state == "off":
-    #         self.run_button["state"] = "disabled"
-    #         self.runEN_button["state"] = "disabled"
-    #     elif state == "on":
-    #         self.run_button["state"] = "active"
-    #         self.runEN_button["state"] = "active"
         
     def infoWin(self) -> None:
         def delete_monitor(self: Window) -> None:
