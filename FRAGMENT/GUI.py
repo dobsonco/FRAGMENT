@@ -131,6 +131,11 @@ class Window(Tk):
             widget.grid_configure(padx=5,pady=5)
 
     def readConfig(self,NAME) -> None:
+        '''
+        Simplest solution to importing config from file. Not elegant but does work. The 
+        main problem with this approach is that we can't dynamically read the file and 
+        update inputs. 
+        '''
         try:
             with open(os.path.join(self.sys_path,NAME)) as jsonfile:
                 params: dict = load(jsonfile)
@@ -212,6 +217,14 @@ class Window(Tk):
         return
 
     def exportConfig(self) -> None:
+        '''
+        Does what it says it does, this basically dumps all of the relevant values 
+        to a dictionary and then to json. Again this is not ideal because we have to 
+        do all of this manually. 
+        
+        This grabs the entries from the GUI but could be changed to grab them from
+        the kinematics object instead in the case that we drop the GUI
+        '''
         try:
             solutions_path = self.KM.temp_folder
             workspace_path = self.KM.sys_path
@@ -276,6 +289,13 @@ class Window(Tk):
         return
 
     def read_input(self) -> None:
+        '''
+        Reads inputs from entries on GUI and send them to the kinematics object, 
+        will need to be changed if we are to drop the GUI.
+
+        In the case that we do drop the GUI we would probably want to merge the 
+        readConfig method with this one and add it to the kinematics class.
+        '''
         self.KM.xdim = int(self.x_dim_entry.get())
         self.KM.ydim = int(self.y_dim_entry.get())
         self.KM.dead = int(self.deadzone_entry.get())
@@ -325,6 +345,12 @@ class Window(Tk):
             return
 
     def runSimple(self) -> None:
+        '''
+        In order to stop the GUI from going unresponsive while the simulation
+        is running, we put the sims on another thread. Ideally we would run
+        different chunks of the calulations on different processes for maximum
+        speed
+        '''
         try:
             self.read_input()
             t = Thread(self.KM.determineDetected())
@@ -334,6 +360,12 @@ class Window(Tk):
         return
 
     def runEN(self) -> None:
+        '''
+        In order to stop the GUI from going unresponsive while the simulation
+        is running, we put the sims on another thread. Ideally we would run
+        different chunks of the calulations on different processes for maximum
+        speed
+        '''
         try:
             self.read_input()
             t = Thread(self.KM.determineEnergy())
@@ -343,11 +375,22 @@ class Window(Tk):
         return
 
     def errMessage(self, errtype: str, message: str) -> None:
+        '''
+        Creates tk error message. Not sure why this eats the error type, but it doesn't 
+        seem to do anything.
+        '''
         messagebox.showerror(title=errtype,message=message)
         return
         
     def infoWin(self) -> None:
+        '''
+        This was useful when the original version was written. Now it isn't very up to date. 
+        We may want to drop this or just update everything so that the information is accurate.
+        '''
         def delete_monitor(self: Window) -> None:
+            '''
+            Destroys monitor and turns button back on
+            '''
             self.infoWindow.destroy()
             self.info_button.config(state=NORMAL)
             return
@@ -375,7 +418,19 @@ class Window(Tk):
         self.infoMessageReaction.grid(column=0,row=0,sticky="ew")
 
     def configWin(self) -> None:
+        '''
+        Opens up an entry for you to enter the name of the config file you want to read
+
+        It should be noted that the function assumes the config file you want to read
+        is in the same directory as your main.py/file you're running this from.
+
+        In order to accept a filepath you will need to change the readConfig method.
+        '''
         def readConfigAndCloseWin(self: Window) -> None:
+            '''
+            Tries to get the name of the config file and close the entry window, if that 
+            fails it will then make a popup telling you it failed
+            '''
             try:
                 NAME = str(self.configMessage.get())
                 self.readConfig(NAME)
@@ -384,6 +439,9 @@ class Window(Tk):
                 self.errMessage("","Invalid Filename")
             return
         def delete_monitor(self: Window,) -> None:
+            '''
+            Deleted the input window and turns button back on
+            '''
             self.import_button.config(state=NORMAL)
             self.configWindow.destroy()
             return

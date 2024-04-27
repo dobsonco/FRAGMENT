@@ -6,6 +6,10 @@ from multiprocessing import Process
 from pandas import read_csv, DataFrame
 from numba import jit
 from datetime import datetime
+# The original idea of this simulation was to basically perform the simplest 
+# nuclear 2 body kinematics sim possible and to generate a figure to show what 
+# was detected, and it reflects that. This does not account for many of the effects 
+# and many of the other factors at play in the real life scenario.
 
 class Kinematics:
     def __init__(self):
@@ -74,6 +78,17 @@ class Kinematics:
         return
 
     def determineDetected(self) -> None:
+        '''
+        The idea with this method is to run the simplest possible simulation that determines if 
+        a particle will be detected by the system. This runs two different loops, the first has 
+        a fixed center of mass angle and random vertex of reaction, the second has random vertex and random 
+        center of mass angle. It only assumes that there will be two products.
+
+        A particle is determines to have been detected if the beamlike hits the zero angle detector
+        and the targetlike travels further than the threshold.
+
+        All outputs will get dumped to a csv in the temp folder, but the save location can be changed.
+        '''
         if self.stop:
             return 
         
@@ -104,39 +119,49 @@ class Kinematics:
 
     @jit(forceobj=True,looplift=True)
     def simpleLoop1(self):
-        self.cm = np.ones(shape=self.nreactions) * self.simple_cm
-        self.vz1 = np.random.uniform(0,self.xdim,size=self.nreactions)
-        A1 = self.labAngle()
-        A2 = self.labAngle2()
-        Er = self.labEnergy(self.mr,self.me,A1)/self.mr
-        Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+        '''
+        Generates array of random vertices, calculates the lab angle and determines if it was detected,
+        see determineDetected() for more information
 
-        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee))
-        self.cm = self.cm[NOTNA]
+        All of the simple loops follow the same structure
+        '''
+        self.cm = np.ones(shape=self.nreactions) * self.simple_cm # Define an array of center of mass angles and name it self.cm
+        self.vz1 = np.random.uniform(0,self.xdim,size=self.nreactions) # Define an array of center of vertices and name it self.vz1
+        A1 = self.labAngle() # Calculate recoil lab angle
+        A2 = self.labAngle2() # calculate ejectile lab angle
+        Er = self.labEnergy(self.mr,self.me,A1)/self.mr # Find lab energy in MeV/U for the recoil
+        Ee = self.labEnergy(self.me,self.mr,A2)/self.me # Find lab energy in MeV/U fir ejectile
+
+        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee)) # Create mask to remove nans
+        self.cm = self.cm[NOTNA] # apply mask 
         self.vz1 = self.vz1[NOTNA]
         A1 = A1[NOTNA]
         A2 = A2[NOTNA]
-        # Er = Er[NOTNA]
-        # Ee = Ee[NOTNA]
 
-        LT = A1 < np.pi/2
-        GT = ~LT
-        y1 = np.zeros_like(A1)
-        y1[LT] = np.tan(A1[LT]) * (self.xdim-self.vz1[LT])
-        y1[GT] = np.tan(A1[GT]) * self.vz1[GT]
+        LT = A1 < np.pi/2 # find all angles below 90 degrees for recoil
+        GT = ~LT # invert LT
+        y1 = np.zeros_like(A1) # create an empty array for calculate y values
+        y1[LT] = np.tan(A1[LT]) * (self.xdim-self.vz1[LT]) # find y values for LT
+        y1[GT] = np.tan(A1[GT]) * self.vz1[GT] # find y values for GT
 
+        # Repeat process for ejectile
         LT = A2 < np.pi/2
         GT = ~LT
         y2 = np.zeros_like(A2)
         y2[LT] = np.tan(A2[LT]) * (self.xdim-self.vz1[LT])
         y2[GT] = np.tan(A2[GT]) * self.vz1[GT]
 
+        # If beamlike goes into zero angle detector and targetlike makes it past the deadzone, classify as detected
         self.DETECTED1 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
         self.vz1 = self.vz1
         return
     
     @jit(forceobj=True,looplift=True)
     def simpleLoop2(self):
+        '''
+        Generates array of random vertices and center of mass angles calculates the lab angle
+        and determines if it was detected, see determineDetected() for more information
+        '''
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
         self.vz2 = np.random.uniform(0,self.xdim,size=self.nreactions)
         A1 = self.labAngle()
@@ -169,6 +194,16 @@ class Kinematics:
         return
 
     def determineEnergy(self) -> None:
+        '''
+        This sim is more complicated than determineDetected(). Here we do 3 different loops with different 
+        randomized variables. We determine if a reaction was detected if the beamlike hits the zero angle detector,
+        if the targetlike makes it past the threshold, and the energy is not a nan value.
+
+        This simulation assumes that there are only two products of any given reaction and does not account for
+        spiraling paths in the gas. 
+
+        See each individual loop for the different randomized variables
+        '''
         if self.stop:
             return
         
@@ -206,34 +241,42 @@ class Kinematics:
 
     @jit(forceobj=True,looplift=True)
     def ENloop1(self) -> None:
-        vz = self.xdim / 2
-        self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
-        A1 = self.labAngle()
-        A2 = self.labAngle2()
-        Er = self.labEnergy(self.mr,self.me,A1)/self.mr
-        Ee = self.labEnergy(self.me,self.mr,A2)/self.me
+        '''
+        Generates array of vertices, finds lab angles and energies and performs simple trig to 
+        determine if the products were detected
 
-        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee))
-        self.cm = self.cm[NOTNA]
+        see determineEnergy() for more info
+        '''
+        vz = self.xdim / 2 # Define vertex in this case, the other loops make an array
+        self.cm = np.random.uniform(0,np.pi,size=self.nreactions) # define center of mass angles
+        A1 = self.labAngle() # Recoil lab angle for each cm
+        A2 = self.labAngle2() # ejectile lab angle for each cm
+        Er = self.labEnergy(self.mr,self.me,A1)/self.mr # energy MeV/U for recoil
+        Ee = self.labEnergy(self.me,self.mr,A2)/self.me # energy MeV/U for ejectile
+
+        NOTNA = ~np.logical_or(np.isnan(Er),np.isnan(Ee)) # Mask for all nan values
+        self.cm = self.cm[NOTNA] # remove nans from all important arrays
         A1 = A1[NOTNA]
         A2 = A2[NOTNA]
         Er = Er[NOTNA]
         Ee = Ee[NOTNA]
 
-        LT = A1 < np.pi/2
-        GT = ~LT
-        y1 = np.zeros_like(A1)
-        y1[LT] = np.tan(A1[LT]) * (self.xdim-vz)
-        y1[GT] = np.tan(A1[GT]) * vz
+        LT = A1 < np.pi/2 # find all lab angles below 90 deg for recoil
+        GT = ~LT # invert mask
+        y1 = np.zeros_like(A1) # empty array for y values
+        y1[LT] = np.tan(A1[LT]) * (self.xdim-vz) # find y vals
+        y1[GT] = np.tan(A1[GT]) * vz # same thing
 
+        # Repeat for ejectile
         LT = A2 < np.pi/2
         GT = ~LT
         y2 = np.zeros_like(A2)
         y2[LT] = np.tan(A2[LT]) * (self.xdim-vz)
         y2[GT] = np.tan(A2[GT]) * vz
 
+        # if beamlike goes into zero angle and targetlike makes it past the threshold classify as detected
         self.DETECTED1 = np.logical_and(y1 >= self.dead,y2 <= self.threshd)
-        self.Cm1 = self.cm
+        self.Cm1 = self.cm # define arrays for plotting
         self.Energy11 = Er
         self.Energy12 = Ee
 
@@ -241,6 +284,12 @@ class Kinematics:
     
     @jit(forceobj=True,looplift=True)
     def ENloop2(self) -> None:
+        '''
+        Generates array of vertices and center of mass angles, finds lab angles and energies and 
+        performs simple trig to determine if the products were detected
+
+        see determineEnergy() for more info
+        '''
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
         self.vz2 = np.random.uniform(0,self.xdim,size=self.nreactions)
         A1 = self.labAngle()
@@ -278,6 +327,13 @@ class Kinematics:
 
     @jit(forceobj=True,looplift=True)
     def ENloop3(self) -> None:
+        '''
+        Generates array of vertices center of mass angles and excitation values, 
+        finds lab angles and energies and performs simple trig to determine if the 
+        products were detected.
+
+        see determineEnergy() for more info
+        '''
         amu = 931.4941024 # MeV/U
 
         self.cm = np.random.uniform(0,np.pi,size=self.nreactions)
@@ -433,18 +489,30 @@ class Kinematics:
     
     @jit(forceobj=True,looplift=True)
     def labAngle(self) -> np.ndarray:
+        '''
+        Basically a 1:1 translation of the igor pro code used for finding the lab angle of
+        a reaction.
+        '''
         gam: np.ndarray = np.sqrt(self.mp*self.mr/self.mt/self.me*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab: np.ndarray = np.arctan2(np.sin(self.cm),gam-np.cos(self.cm))
         return lab
     
     @jit(forceobj=True,looplift=True)
     def labAngle2(self) -> np.ndarray:
+        '''
+        Also a 1:1 translation of the igor pro code used to find the lab angle of the other
+        product
+        '''
         gam: np.ndarray = np.sqrt(self.mp*self.me/self.mt/self.mr*self.ep/(self.ep+self.Q*(1+self.mp/self.mt)))
         lab: np.ndarray = np.arctan2(np.sin(self.cm),gam+np.cos(self.cm))
         return lab
 
     @jit(forceobj=True,looplift=True)
     def labEnergy(self,mr,me,th) -> np.ndarray:
+        '''
+        A 1:1 translation of the igor pro code, however we use numpy arrays and masking
+        to speed up the comparisons. 
+        '''
         delta: np.ndarray = np.sqrt(self.mp*mr*self.ep*np.cos(th)**2 + (me+mr)*(me*self.Q+(me-self.mp)*self.ep))
         fir: np.ndarray = np.sqrt(self.mp*mr*self.ep)*np.cos(th)
         e1: np.ndarray = (fir + delta) / (me+mr)
@@ -456,6 +524,6 @@ class Kinematics:
         der: np.ndarray = 1/(1+arg**2)*(gam*np.cos(self.cm)-1)/(gam-np.cos(self.cm))**2
 
         m: np.ndarray = der < 0
-        e2[m] = e1[m]
+        e2[m] = e1[m] # Effectively merges the arrays at the points where der < 0
 
         return e2
